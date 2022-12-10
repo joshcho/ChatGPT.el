@@ -53,10 +53,14 @@ successful.
 If ChatGPT server is not initialized, chatgpt-query calls this
 function."
   (interactive)
+  (when (equal (shell-command-to-string "pip3 list | grep revChatGPT") "")
+    (shell-command "pip3 install revChatGPT")
+    (message "revChatGPT installed through pip."))
   (setq chatgpt-process (epc:start-epc "python" (list (expand-file-name (format "%schatgpt.py" chatgpt-repo-path)))))
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
+(chatgpt-init)
 
 (defvar chatgpt-waiting-dot-timer nil
   "Timer to update the waiting message in the ChatGPT buffer.")
