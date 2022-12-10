@@ -2,19 +2,27 @@
 
 ChatGPT.el is an Emacs package that provides integration with the [ChatGPT](https://chat.openai.com/chat) model. With ChatGPT.el, you can easily query ChatGPT and receive responses within Emacs, allowing you to quickly get answers to your questions and suggestions for improving your code.
 
-
 ## Quickstart
 
 1.  Install the ChatGPT.el package using straight.el or quelpa. For more information, see the [Installation](#org8eb7662) section.
-2.  Install the revChatGPT dependency using pip. Run the following command:
+2. Set the `chatgpt-repo-path` variable to the path of your ChatGPT repository. If you installed the ChatGPT.el package using straight.el, you can set the variable in your `.emacs` file as follows:
+
+       (setq chatgpt-repo-path "/path/to/ChatGPT/repository")
+
+If you installed the ChatGPT.el package using quelpa, you can set the variable in your `.emacs` file as follows:
+
+       (setq chatgpt-repository-path (expand-file-name "ChatGPT" quelpa-build-dir))
+
+Make sure to replace `/path/to/ChatGPT/repository` with the actual path of your ChatGPT repository on your system.
+3.  Install the revChatGPT dependency using pip. Run the following command:
 
         pip3 install revChatGPT --upgrade
-3.  Initialize the config.json file in your **home directory** to authenticate API access. For more information, see the [documentation for revChatGPT](https://github.com/acheong08/ChatGPT/wiki/Setup).
-4.  Add a keybinding for the chatgpt-query function in your `.emacs` file. For example:
+4.  Initialize the config.json file in your **home directory** to authenticate API access. For more information, see the [documentation for revChatGPT](https://github.com/acheong08/ChatGPT/wiki/Setup).
+5.  Add a keybinding for the chatgpt-query function in your `.emacs` file. For example:
 
         (global-set-key (kbd "C-c q") 'chatgpt-query)
-5.  Start Emacs and query ChatGPT by pressing `C-c q` and entering your query in the minibuffer.
-6.  (Optional) Select a region of text and press `C-c q` to query ChatGPT with the selected text.
+6.  Start Emacs and query ChatGPT by pressing `C-c q` and entering your query in the minibuffer.
+7.  (Optional) Select a region of text and press `C-c q` to query ChatGPT with the selected text.
 
 
 <a id="org8eb7662"></a>
@@ -116,6 +124,7 @@ To update the package installed through straight, use the `straight-pull-package
 
 ## Future Roadmap
 
+-   Simplify install
 -   Authenticate using browser
 -   Add more query types
 -   Add structure to \*ChatGPT\* buffer.
