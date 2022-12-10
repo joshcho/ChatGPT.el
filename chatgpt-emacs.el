@@ -1,4 +1,34 @@
 (require 'epc)
+(require 'deferred)
+
+(defgroup chatgpt-emacs nil
+  "Configuration for chatgpt."
+  :prefix "chatgpt-"
+  :group 'ai)
+
+(defcustom chatgpt-query-format-string-map
+  '(("doc" . "Please write the documentation for the following function.\n\n%s")
+    ("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
+    ("understand" . "What is the following?\n\n%s")
+    ("improve" . "Please improve the following.\n\n%s"))
+  "An association list that maps query types to their corresponding format strings."
+  :type '(alist :key-type (string :tag "Query Type")
+                :value-type (string :tag "Format String"))
+  :group 'chatgpt)
+
+(defcustom chatgpt-enable-loading-ellipsis t
+  "Controls whether the loading ellipsis animation is displayed in the ChatGPT buffer."
+  :type 'boolean
+  :group 'chatgpt)
+
+(defcustom chatgpt-display-on-query t
+  "Controls whether the ChatGPT buffer is displayed when a query is sent to the model."
+  :type 'boolean
+  :group 'chatgpt)
+(defcustom chatgpt-display-on-response t
+  "Controls whether the ChatGPT buffer is displayed when a response is received from the model."
+  :type 'boolean
+  :group 'chatgpt)
 
 (defvar chatgpt-process nil
   "The ChatGPT process.")
@@ -20,26 +50,14 @@ function."
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
 
-;;; `chatgpt-enable-loading-ellipsis'
-;;;
-;;; This variable controls whether the loading ellipsis animation is displayed
-;;; in the ChatGPT buffer while waiting for a response from the ChatGPT
-;;; process. The default value is `t`, which enables the animation. To disable
-;;; the animation, set this variable to `nil`.
-(defvar chatgpt-enable-loading-ellipsis t
-  "Controls whether the loading ellipsis animation is displayed in the ChatGPT buffer.")
-
-;;; `chatgpt-waiting-dot-timer'
-;;;
-;;; This variable holds the timer used to update the waiting message in the
-;;; ChatGPT buffer with a dot (.) every 0.5 seconds. This creates an
-;;; animation that indicates to the user that the ChatGPT process is still
-;;; waiting for a response. The default value of this variable is `nil`,
-;;; which means that the timer is not running. The timer is started when the
-;;; `chatgpt-query` function is called, and is stopped when a response is
-;;; received from the ChatGPT process.
-(defvar chatgpt-waiting-dot-timer nil
-  "Timer to update the waiting message in the ChatGPT buffer.")
+;;;###autoload
+(defun chatgpt-stop ()
+  "Stops the ChatGPT server."
+  (interactive)
+  (cancel-timer chatgpt-waiting-dot-timer)
+  (epc:stop-epc chatgpt-process)
+  (setq chatgpt-process nil)
+  (message "Stop ChatGPT process."))
 
 ;;;###autoload
 (defun chatgpt-display ()
@@ -66,32 +84,12 @@ function."
   (kill-line)
   (setq kill-ring (cdr kill-ring)))
 
-;;;###autoload
-(defun chatgpt-query (query)
-  "Query ChatGPT with the provided string.
-
-The user will be prompted to enter a query if none is provided. If
-there is an active region, the user will be prompted to select the
-type of query to perform.
-
-Supported query types are:
-
-* doc: Ask for documentation in query
-* bug: Find bug in query
-* improve: Suggestions for improving code
-* understand: Query for understanding code or behavior"
-  (interactive (list (if (region-active-p)
-                         (buffer-substring-no-properties (region-beginning) (region-end))
-                       (read-from-minibuffer "ChatGPT Query: "))))
-  ;; add support for region here, based on modes
-  (if (region-active-p)
-      (let ((query-type (completing-read "Type of Query: " '(doc bug improve understand))))
-        (chatgpt-query-by-type query query-type))
-    (chatgpt--query query)))
+(defvar chatgpt-waiting-dot-timer nil
+  "Timer to update the waiting message in the ChatGPT buffer.")
 
 ;;;###autoload
 (defun chatgpt--query (query)
-  "Send a query to the ChatGPT process.
+  "Send QUERY to the ChatGPT process.
 
 The query is inserted into the *ChatGPT* buffer with bold text,
 and the response from the ChatGPT process is appended to the
@@ -124,7 +122,8 @@ users."
                                   (when (>= (length line) 3)
                                     (chatgpt--delete-line))
                                   (insert "."))))))))
-  (chatgpt-display)
+  (when chatgpt-display-on-query
+    (chatgpt-display))
   (deferred:$
    (epc:call-deferred chatgpt-process 'query (list query))
    (deferred:nextc it
@@ -138,12 +137,69 @@ users."
              (chatgpt--delete-line)
              (insert message)
              (chatgpt--newline-twice)))
-         (chatgpt-display))))))
+         (when chatgpt-display-on-response
+           (chatgpt-display)))))))
 
 ;;;###autoload
-(defun chatgpt-stop ()
-  (interactive)
-  (cancel-timer chatgpt-waiting-dot-timer)
-  (epc:stop-epc chatgpt-process)
-  (setq chatgpt-process nil)
-  (message "Stop ChatGPT process."))
+(defun chatgpt--query-by-type (query query-type)
+  "Query ChatGPT with a given QUERY and QUERY-TYPE.
+
+QUERY is the text to be passed to ChatGPT.
+
+QUERY-TYPE is the type of query, which determines the format string
+used to generate the final query sent to ChatGPT. The format string
+is looked up in 'chatgpt-query-format-string-map', which is an
+alist of QUERY-TYPE and format string pairs. If no matching
+format string is found, an error is raised.
+
+The format string is expected to contain a %s placeholder, which
+will be replaced with QUERY. The resulting string is then passed
+to ChatGPT.
+
+For example, if QUERY is \"(defun square (x) (* x x))\" and
+QUERY-TYPE is \"doc\", the final query sent to ChatGPT would be
+\"Please write the documentation for the following function.
+(defun square (x) (* x x))\""
+  (if (equal query-type "custom")
+      (chatgpt--query
+       (format "%s\n\n%s" (read-from-minibuffer "ChatGPT Custom Prompt: ") query))
+    (if-let (format-string (cdr (assoc query-type chatgpt-query-format-string-map)))
+        (chatgpt--query
+         (format format-string query))
+      (error "No format string associated with 'query-type' %s. Please customize 'chatgpt-query-format-string-map'." query-type))))
+
+(defun chatgpt-query-by-type (query)
+  "Query ChatGPT with a string built from QUERY and interactively chosen 'query-type'.
+
+The function uses the 'completing-read' function to prompt the user to select the type of query to use. The selected query type is passed to the 'chatgpt--query-by-type' function along with the 'query' argument, which sends the query to the ChatGPT model and returns the response."
+  (interactive (list (if (region-active-p)
+                         (buffer-substring-no-properties (region-beginning) (region-end))
+                       (read-from-minibuffer "ChatGPT Query: "))))
+  (let* ((query-type (completing-read "Type of Query: " (cons "custom" (mapcar #'car chatgpt-query-format-string-map)))))
+    (chatgpt--query-by-type query query-type)))
+
+;;;###autoload
+(defun chatgpt-query (query)
+  "Query ChatGPT with QUERY.
+
+The user will be prompted to enter a query if none is provided. If
+there is an active region, the user will be prompted to select the
+type of query to perform.
+
+Supported query types are:
+
+* doc: Ask for documentation in query
+* bug: Find bug in query
+* improve: Suggestions for improving code
+* understand: Query for understanding code or behavior"
+  (interactive (list (if (region-active-p)
+                         (buffer-substring-no-properties (region-beginning) (region-end))
+                       (read-from-minibuffer "ChatGPT Query: "))))
+  ;; add support for region here, based on modes
+  (if (region-active-p)
+      (chatgpt-query-by-type query)
+    (chatgpt--query query)))
+
+(provide 'chatgpt-emacs
+         :requires 'epc 'deferred)
+;;; chatgpt-emacs.el ends here
