@@ -1,0 +1,49 @@
+#+TITLE: chatgpt-emacs
+
+~chatgpt-emacs~ is a package for Emacs that allows you to interact with the ChatGPT large language model. The package includes two main interactive functions: ~chatgpt-init~ and ~chatgpt-query~.
+
+* Quickstart
+1. Install the necessary dependencies.
+#+begin_src python
+pip3 install revChatGPT --upgrade
+#+end_src
+2. Initialize the config.json file as specified in the [[https://github.com/acheong08/ChatGPT/wiki/Setup][documentation for revChatGPT]].
+3. Bind the ~chatgpt-init~ and ~chatgpt-query~ functions to convenient keybindings in your .emacs configuration file. For example:
+#+begin_src emacs-lisp
+(global-set-key (kbd "C-c i") 'chatgpt-init)
+(global-set-key (kbd "C-c q") 'chatgpt-query)
+#+end_src
+
+4. Start Emacs and initialize the ChatGPT system by pressing ~C-c i~.
+5. Query ChatGPT by pressing ~C-c q~ and entering your query in the minibuffer.
+
+* Dependencies
+Make sure you install ~revChatGPT~.
+
+#+begin_src python
+pip3 install revChatGPT --upgrade
+#+end_src
+
+* Usage
+To use the ChatGPT package for Emacs, first make sure you have installed the necessary dependencies. Then, use the ~chatgpt-init~ function to initialize the ChatGPT system.
+
+#+begin_src emacs-lisp
+(chatgpt-init)
+#+end_src
+
+Once the system is initialized, you can use the ~chatgpt-query~ function to query ChatGPT for a response.
+
+#+begin_src emacs-lisp
+(chatgpt-query "What is the capital of France?")
+#+end_src
+
+This will return a response from ChatGPT, such as "The capital of France is Paris."
+
+Please note that the quality of the responses may vary depending on the input and the current state of the ChatGPT system.
+
+* Future Roadmap
+- Async support: Currently, the ~chatgpt-query~ function is blocking and will pause Emacs until a response is received from ChatGPT. In a future update, we plan to add support for async queries, so that Emacs remains responsive while waiting for a response from ChatGPT.
+
+For more detailed usage instructions, please refer to the documentation included with ~chatgpt-emacs~ package. Thank you for using ~chatgpt-emacs~!
+
+[95%+ of this README.org was written by ChatGPT.]
