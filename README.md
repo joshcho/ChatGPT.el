@@ -42,7 +42,7 @@ This will clone the repository and use straight.el to manage the package.
 To install the ChatGPT.el package using quelpa, follow these steps:
 
 1.  Install [use-package](https://github.com/jwiegley/use-package).
-2.  Install quelpa by adding the following code to your \`.emacs\` configuration file and restarting Emacs:
+2.  Install quelpa by adding the following code to your `.emacs` configuration file and restarting Emacs:
 
     (use-package quelpa
       :ensure t
