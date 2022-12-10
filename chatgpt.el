@@ -1,7 +1,7 @@
 (require 'epc)
 (require 'deferred)
 
-(defgroup chatgpt-emacs nil
+(defgroup chatgpt nil
   "Configuration for chatgpt."
   :prefix "chatgpt-"
   :group 'ai)
@@ -200,6 +200,6 @@ Supported query types are:
       (chatgpt-query-by-type query)
     (chatgpt--query query)))
 
-(provide 'chatgpt-emacs
+(provide 'chatgpt
          :requires 'epc 'deferred)
-;;; chatgpt-emacs.el ends here
+;;; chatgpt.el ends here

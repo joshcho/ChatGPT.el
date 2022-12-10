@@ -1,54 +1,99 @@
-#+TITLE: chatgpt-emacs
+#+TITLE: ChatGPT.el
 
-~chatgpt-emacs~ is [[https://chat.openai.com/chat][ChatGPT]] in Emacs.
+ChatGPT.el is an Emacs package that provides integration with the [[https://chat.openai.com/chat][ChatGPT]] model. With ChatGPT.el, you can easily query ChatGPT and receive responses within Emacs, allowing you to quickly get answers to your questions and suggestions for improving your code.
 
-* Quickstart
-1. Install the package using ~straight.el~. See [[Installation][Installation]].
-2. Install the necessary dependency.
-#+begin_src python
-pip3 install revChatGPT --upgrade
-#+end_src
-3. Initialize the config.json file to authenticate API access. See the [[https://github.com/acheong08/ChatGPT/wiki/Setup][documentation for revChatGPT]].
-4. Bind ~chatgpt-query~ to a convenient keybinding in ~.emacs~. For example:
-#+begin_src emacs-lisp :results silent
-(global-set-key (kbd "C-c q") 'chatgpt-query)
-#+end_src
+** Quickstart
+1. Install the ChatGPT.el package using straight.el or quelpa. For more information, see the [[Installation]] section.
+2. Install the revChatGPT dependency using pip. Run the following command:
+  #+begin_src python
+  pip3 install revChatGPT --upgrade
+  #+end_src
+3. Initialize the config.json file in your *home directory* to authenticate API access. For more information, see the [[https://github.com/acheong08/ChatGPT/wiki/Setup][documentation for revChatGPT]].
+4. Add a keybinding for the chatgpt-query function in your ~.emacs~ file. For example:
+  #+begin_src emacs-lisp
+  (global-set-key (kbd "C-c q") 'chatgpt-query)
+  #+end_src
 5. Start Emacs and query ChatGPT by pressing ~C-c q~ and entering your query in the minibuffer.
-6. (Optional) Select a region and press ~C-c q~.
+6. (Optional) Select a region of text and press ~C-c q~ to query ChatGPT with the selected text.
 
-* Installation
-To install the ~chatgpt-emacs~ package using ~straight.el~, first make sure you have installed ~straight.el~ by following the instructions on the [[https://github.com/raxod502/straight.el][official repository]].
+** Installation
+*** straight.el
+To install the ~ChatGPT.el~ package using straight.el, first make sure you have installed straight.el by following the instructions on the [[https://github.com/raxod502/straight.el][official repository]].
 
 Once you have installed ~straight.el~, use the ~straight-use-package~ function to clone and install the package.
 
 #+begin_src emacs-lisp
 (straight-use-package
- '(chatgpt-emacs
+ '(chatgpt
    :type git
    :host github
-   :repo "joshcho/chatgpt-emacs"))
+   :repo "joshcho/ChatGPT.el"))
 #+end_src
 
 This will clone the repository and use straight.el to manage the package.
 
-* Query Selected Region
+*** quelpa
+To install the ChatGPT.el package using quelpa, follow these steps:
 
-The ~chatgpt-query~ function supports a feature where, when a region of text is selected, the user is prompted to choose a type of query to send to ChatGPT. The available query types and their corresponding prompts are customizable by the user, allowing for quick and easy interaction with ChatGPT from within the buffer. This feature greatly improves the development workflow by allowing users to quickly generate prompts for ChatGPT without leaving their buffer. To use this feature, simply select a region of text and call the ~chatgpt-query~ function, and the appropriate prompt will be generated for the chosen query type.
+0. Install [[https://github.com/jwiegley/use-package][use-package]].
+1. Install quelpa by adding the following code to your `.emacs` configuration file and restarting Emacs:
 
-To improve the development workflow with the chatgpt-emacs package, it is recommended to use the ~expand-region.el~ package. This package allows users to quickly and easily select the desired region of text to be used as input for the chatgpt-query function. This can save time and effort when working with ChatGPT and can improve the overall experience of using the chatgpt-emacs package. To install ~expand-region.el~, follow the instructions on the [[https://github.com/magnars/expand-region.el][official repository]]. Once installed, users can bind the expand-region command to a convenient keybinding in their .emacs configuration file, such as:
+#+begin_src emacs-lisp
+(use-package quelpa
+  :ensure t
+  :config
+  (quelpa
+   '(quelpa-use-package
+     :fetcher git
+     :url "https://github.com/quelpa/quelpa-use-package.git")))
+
+(require 'quelpa-use-package)
+#+end_src
+
+2. Create a recipe for the ChatGPT.el package by adding the following code to your ~.emacs~ file:
+
+#+begin_src emacs-lisp
+(quelpa-defrecipe chatgpt
+  :fetcher github
+  :repo "joshcho/ChatGPT.el"
+  :files ("*.el"))
+#+end_src
+
+3. Use the ~quelpa~ function to install the ChatGPT.el package using the recipe you created. You can do this by adding the following code to your ~.emacs~ file and restarting Emacs:
+
+#+begin_src emacs-lisp
+(quelpa '(chatgpt :fetcher github :repo "joshcho/ChatGPT.el"))
+#+end_src
+
+After running this code, quelpa will download the ChatGPT.el package from GitHub and install it in your ~.emacs.d~ directory. You can then use the package by adding the appropriate ~use-package~ declaration to your ~.emacs~ file, for example:
+
+#+begin_src emacs-lisp
+(use-package chat-gpt
+  :bind
+  ("C-c q" . chatgpt-query))
+#+end_src
+
+** Query Region
+
+The ~chatgpt-query~ function allows users to easily query ChatGPT with the contents of an active region in their buffer. When called, the function prompts the user to select a query type from a customizable list of options. The selected query type determines the prompt that is generated and sent to ChatGPT. This feature makes it easy to quickly and conveniently interact with ChatGPT from within the buffer, improving the development workflow.
+
+To make the most of this feature, we recommend using the expand-region.el package. This package provides a convenient way to quickly select the desired region of text for use with the ~chatgpt-query~ function. To install expand-region.el, follow the instructions on the official repository: https://github.com/magnars/expand-region.el.
+
+Once installed, you can bind the ~expand-region~ command to a keybinding in your ~.emacs~ file, such as:
 
 #+begin_src emacs-lisp
 (global-set-key (kbd "C-=") 'er/expand-region)
 #+end_src
 
-With this keybinding in place, users can simply press C-= to quickly and easily select the desired region of text for use with the ~chatgpt-query~ function. This can greatly improve the development workflow and make using the chatgpt-emacs package more efficient and enjoyable.
+With this keybinding in place, you can simply press ~C-=~ to expand the selected region and easily select the text you want to query with ChatGPT. This can greatly improve your development workflow and make using the chatgpt-query function more efficient and enjoyable.
 
-* Prompt Customization
+** Customization
+*** Prompt Customization
 Query types and prompts can be customized by setting the ~chatgpt-query-types~ variable. For example:
 
 #+begin_src emacs-lisp
 (setq chatgpt-query-types '(
-                            ;; chatgpt-emacs defaults
+                            ;; ChatGPT.el defaults
                             ("doc" . "Please write the documentation for the following function.\n\n%s")
                             ("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
                             ("understand" . "What does the following function do?\n\n%s")
@@ -59,20 +104,19 @@ Query types and prompts can be customized by setting the ~chatgpt-query-types~ v
 
 This allows users to define their own query types and corresponding prompts. Note that you shouldn't use "custom" as your custom type, as that is bound to buildng the prompt interactively.
 
-* Updating the Package
-To update the package, use the straight-pull-package function.
+*** Display Customization
+
+
+** Updating the Package
+To update the package installed through straight, use the ~straight-pull-package~ function.
 
 #+begin_src emacs-lisp
-(straight-pull-package 'chatgpt-emacs)
+(straight-pull-package 'chatgpt)
 #+end_src
 
-After the package is installed, you can use ~chatgpt-query~ function as described in the previous sections.
-
-* Future Roadmap
+** Future Roadmap
 - Authenticate using browser
 - Add more query types
 - Add structure to \*ChatGPT\* buffer.
 
-For more detailed usage instructions, please refer to the documentation included with ~chatgpt-emacs~ package. Thank you for using ~chatgpt-emacs~!
-
-[95%+ of this README.org was written by ChatGPT.]
+For more detailed usage instructions, please refer to the documentation included with ~ChatGPT.el~ package. Thank you for using ~ChatGPT.el~!
