@@ -17,16 +17,19 @@
   :group 'chatgpt)
 
 (defcustom chatgpt-enable-loading-ellipsis t
-  "Controls whether the loading ellipsis animation is displayed in the ChatGPT buffer."
+  "Controls whether the loading ellipsis animation is
+displayed in the ChatGPT buffer."
   :type 'boolean
   :group 'chatgpt)
 
 (defcustom chatgpt-display-on-query t
-  "Controls whether the ChatGPT buffer is displayed when a query is sent to the model."
+  "Controls whether the ChatGPT buffer is displayed when a query
+is sent to the model."
   :type 'boolean
   :group 'chatgpt)
 (defcustom chatgpt-display-on-response t
-  "Controls whether the ChatGPT buffer is displayed when a response is received from the model."
+  "Controls whether the ChatGPT buffer is displayed when a response
+is received from the model."
   :type 'boolean
   :group 'chatgpt)
 
@@ -55,18 +58,23 @@ function."
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
 
+(defvar chatgpt-waiting-dot-timer nil
+  "Timer to update the waiting message in the ChatGPT buffer.")
+
 ;;;###autoload
 (defun chatgpt-stop ()
   "Stops the ChatGPT server."
   (interactive)
-  (cancel-timer chatgpt-waiting-dot-timer)
+  (when chatgpt-waiting-dot-timer
+    (cancel-timer chatgpt-waiting-dot-timer))
   (epc:stop-epc chatgpt-process)
   (setq chatgpt-process nil)
   (message "Stop ChatGPT process."))
 
 ;;;###autoload
 (defun chatgpt-display ()
-  "Displays the ChatGPT buffer and centers the max-point if it is not in the current view."
+  "Displays the ChatGPT buffer and centers the max-point if it is
+not in the current view."
   (display-buffer "*ChatGPT*")
   (when-let ((saved-win (get-buffer-window (current-buffer)))
              (win (get-buffer-window "*ChatGPT*")))
@@ -88,9 +96,6 @@ function."
   (beginning-of-line)
   (kill-line)
   (setq kill-ring (cdr kill-ring)))
-
-(defvar chatgpt-waiting-dot-timer nil
-  "Timer to update the waiting message in the ChatGPT buffer.")
 
 ;;;###autoload
 (defun chatgpt--query (query)
@@ -175,9 +180,14 @@ QUERY-TYPE is \"doc\", the final query sent to ChatGPT would be
 
 ;;;###autoload
 (defun chatgpt-query-by-type (query)
-  "Query ChatGPT with a string built from QUERY and interactively chosen 'query-type'.
+  "Query ChatGPT with a string built from QUERY and interactively
+chosen 'query-type'.
 
-The function uses the 'completing-read' function to prompt the user to select the type of query to use. The selected query type is passed to the 'chatgpt--query-by-type' function along with the 'query' argument, which sends the query to the ChatGPT model and returns the response."
+The function uses the 'completing-read' function to prompt the
+user to select the type of query to use. The selected query type
+is passed to the 'chatgpt--query-by-type' function along with the
+'query' argument, which sends the query to the ChatGPT model and
+returns the response."
   (interactive (list (if (region-active-p)
                          (buffer-substring-no-properties (region-beginning) (region-end))
                        (read-from-minibuffer "ChatGPT Query: "))))
