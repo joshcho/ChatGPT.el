@@ -105,8 +105,8 @@ users."
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (save-excursion
       (goto-char (point-max))
-      (unless (equal (thing-at-point 'line) "\n")
-        (chatgpt--delete-line))
+      ;; (when (equal (thing-at-point 'line) "\n")
+      ;;   (chatgpt--delete-line))
       (insert (propertize query 'face 'bold))
       (chatgpt--newline-twice)
       (unless chatgpt-enable-loading-ellipsis
@@ -168,6 +168,7 @@ QUERY-TYPE is \"doc\", the final query sent to ChatGPT would be
          (format format-string query))
       (error "No format string associated with 'query-type' %s. Please customize 'chatgpt-query-format-string-map'." query-type))))
 
+;;;###autoload
 (defun chatgpt-query-by-type (query)
   "Query ChatGPT with a string built from QUERY and interactively chosen 'query-type'.
 
