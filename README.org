@@ -26,7 +26,10 @@ Follow instructions at [[https://github.com/acheong08/ChatGPT/wiki/Setup][acheon
 #+end_src
 
 ** Usage
-Press ~C-c q~ to query ChatGPT. Select region before command to query ChatGPT by type. Customize ~chatgpt-query-types~ for your own types.
+Press ~C-c q~ to query ChatGPT. Select region before ~C-c q~ to query ChatGPT by type.
+
+** Customization
+Customize ~chatgpt-query-types~ for your own types.
 
 #+begin_src emacs-lisp
 (setq chatgpt-query-types '(
