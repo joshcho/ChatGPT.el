@@ -33,6 +33,11 @@
 (defvar chatgpt-process nil
   "The ChatGPT process.")
 
+(defcustom chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/"
+  "The path of ChatGPT.el repository."
+  :type 'string
+  :group 'chatgpt)
+
 ;;;###autoload
 (defun chatgpt-init ()
   "Initialize the ChatGPT server.
@@ -45,7 +50,7 @@ successful.
 If ChatGPT server is not initialized, chatgpt-query calls this
 function."
   (interactive)
-  (setq chatgpt-process (epc:start-epc "python" '("chatgpt-emacs.py")))
+  (setq chatgpt-process (epc:start-epc "python" (list (expand-file-name (format "%schatgpt.py" chatgpt-repo-path)))))
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
@@ -201,6 +206,5 @@ Supported query types are:
       (chatgpt-query-by-type query)
     (chatgpt--query query)))
 
-(provide 'chatgpt
-         :requires 'epc 'deferred)
+(provide 'chatgpt)
 ;;; chatgpt.el ends here
