@@ -24,9 +24,9 @@ ChatGPT.el is an Emacs package that provides integration with the [ChatGPT](http
 
 ### straight.el
 
-To install the `ChatGPT.el` package using straight.el, first make sure you have installed straight.el by following the instructions on the [official repository](https://github.com/raxod502/straight.el).
+To install the ChatGPT.el package using straight.el, first make sure you have installed straight.el by following the instructions on the [official repository](https://github.com/raxod502/straight.el).
 
-Once you have installed `straight.el`, use the `straight-use-package` function to clone and install the package.
+Once you have installed straight.el, use the `straight-use-package` function to clone and install the package.
 
     (straight-use-package
      '(chatgpt
