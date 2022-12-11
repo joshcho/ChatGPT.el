@@ -1,3 +1,17 @@
+;;; chatgpt.el --- ChatGPT in Emacs
+
+;; Copyright (C) 2011 Free Software Foundation, Inc.
+
+;; Author: Jungmin "Josh" Cho <joshchonpc@gmail.com>
+;; Version: 0.1
+;; Package-Requires: ((epc "0.1.1") ("deferred" 0.5.1))
+;; Keywords: ai
+;; URL: https://github.com/joshcho/ChatGPT.el
+
+;;; Commentary:
+
+;; This package provides an interactive interface with ChatGPT API.
+
 (require 'epc)
 (require 'deferred)
 
