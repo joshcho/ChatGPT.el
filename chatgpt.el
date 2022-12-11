@@ -15,6 +15,8 @@
 (require 'epc)
 (require 'deferred)
 
+;;; Code:
+
 (defgroup chatgpt nil
   "Configuration for chatgpt."
   :prefix "chatgpt-"
@@ -31,19 +33,17 @@
   :group 'chatgpt)
 
 (defcustom chatgpt-enable-loading-ellipsis t
-  "Controls whether the loading ellipsis animation is
-displayed in the ChatGPT buffer."
+  "Controls whether the loading ellipsis animation is displayed in the ChatGPT buffer."
   :type 'boolean
   :group 'chatgpt)
 
 (defcustom chatgpt-display-on-query t
-  "Controls whether the ChatGPT buffer is displayed when a query
-is sent to the model."
+  "Controls whether the ChatGPT buffer is displayed when a query is sent to the model."
   :type 'boolean
   :group 'chatgpt)
+
 (defcustom chatgpt-display-on-response t
-  "Controls whether the ChatGPT buffer is displayed when a response
-is received from the model."
+  "Controls whether the ChatGPT buffer is displayed when a response is received from the model."
   :type 'boolean
   :group 'chatgpt)
 
@@ -64,7 +64,7 @@ initializes the ChatGPT buffer, enabling visual line mode in it. A
 message is displayed to indicate that the initialization was
 successful.
 
-If ChatGPT server is not initialized, chatgpt-query calls this
+If ChatGPT server is not initialized, `chatgpt-query' calls this
 function."
   (interactive)
   (when (equal (shell-command-to-string "pip3 list | grep revChatGPT") "")
@@ -74,7 +74,6 @@ function."
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
-(chatgpt-init)
 
 (defvar chatgpt-waiting-dot-timer nil
   "Timer to update the waiting message in the ChatGPT buffer.")
@@ -91,31 +90,18 @@ function."
 
 ;;;###autoload
 (defun chatgpt-display ()
-  "Displays the ChatGPT buffer and centers the max-point if it is
-not in the current view."
-  (display-buffer "*ChatGPT*")
-  (when-let ((saved-win (get-buffer-window (current-buffer)))
-             (win (get-buffer-window "*ChatGPT*")))
-    (unless (equal (current-buffer) (get-buffer "*ChatGPT*"))
-      (select-window win)
-      (goto-char (point-max))
-      (unless (pos-visible-in-window-p (point-max) win)
+  "Displays the ChatGPT buffer and centers the max-point if it is not in the current view."
+  (save-selected-window
+    (let ((buf (get-buffer-create "*ChatGPT*"))
+          (win (get-buffer-window "*ChatGPT*")))
+      (pop-to-buffer buf)
+      (unless (equal (current-buffer) buf)
+        (select-window win)
         (goto-char (point-max))
-        (recenter))
-      (select-window saved-win))))
+        (unless (pos-visible-in-window-p (point-max) win)
+          (goto-char (point-max))
+          (recenter))))))
 
-;;;###autoload
-(defun chatgpt--newline-twice ()
-  (newline)
-  (newline))
-
-;;;###autoload
-(defun chatgpt--delete-line ()
-  (beginning-of-line)
-  (kill-line)
-  (setq kill-ring (cdr kill-ring)))
-
-;;;###autoload
 (defun chatgpt--query (query)
   "Send QUERY to the ChatGPT process.
 
@@ -126,7 +112,7 @@ ellipsis is displayed in the buffer while waiting for the
 response.
 
 This function is intended to be called internally by the
-chatgpt-query function, and should not be called directly by
+`chatgpt-query' function, and should not be called directly by
 users."
   (unless chatgpt-process
     (chatgpt-init))
@@ -136,7 +122,8 @@ users."
       ;; (when (equal (thing-at-point 'line) "\n")
       ;;   (chatgpt--delete-line))
       (insert (propertize query 'face 'bold))
-      (chatgpt--newline-twice)
+      (newline)
+      (newline)
       (unless chatgpt-enable-loading-ellipsis
         (insert (concat "Waiting for ChatGPT...")))))
   (when chatgpt-enable-loading-ellipsis
@@ -148,7 +135,9 @@ users."
                                 (goto-char (point-max))
                                 (let ((line (thing-at-point 'line)))
                                   (when (>= (length line) 3)
-                                    (chatgpt--delete-line))
+                                    (beginning-of-line)
+                                    (kill-line)
+                                    (setq kill-ring (cdr kill-ring)))
                                   (insert "."))))))))
   (when chatgpt-display-on-query
     (chatgpt-display))
@@ -162,13 +151,15 @@ users."
          (with-current-buffer (get-buffer-create "*ChatGPT*")
            (save-excursion
              (goto-char (point-max))
-             (chatgpt--delete-line)
+             (beginning-of-line)
+             (kill-line)
+             (setq kill-ring (cdr kill-ring))
              (insert message)
-             (chatgpt--newline-twice)))
+             (newline)
+             (newline)))
          (when chatgpt-display-on-response
            (chatgpt-display)))))))
 
-;;;###autoload
 (defun chatgpt--query-by-type (query query-type)
   "Query ChatGPT with a given QUERY and QUERY-TYPE.
 
@@ -187,19 +178,18 @@ to ChatGPT.
 For example, if QUERY is \"(defun square (x) (* x x))\" and
 QUERY-TYPE is \"doc\", the final query sent to ChatGPT would be
 \"Please write the documentation for the following function.
-(defun square (x) (* x x))\""
+\(defun square (x) (* x x))\""
   (if (equal query-type "custom")
       (chatgpt--query
        (format "%s\n\n%s" (read-from-minibuffer "ChatGPT Custom Prompt: ") query))
     (if-let (format-string (cdr (assoc query-type chatgpt-query-format-string-map)))
         (chatgpt--query
          (format format-string query))
-      (error "No format string associated with 'query-type' %s. Please customize 'chatgpt-query-format-string-map'." query-type))))
+      (error "No format string associated with 'query-type' %s. Please customize 'chatgpt-query-format-string-map'" query-type))))
 
 ;;;###autoload
 (defun chatgpt-query-by-type (query)
-  "Query ChatGPT with a string built from QUERY and interactively
-chosen 'query-type'.
+  "Query ChatGPT with from QUERY and interactively chosen 'query-type'.
 
 The function uses the 'completing-read' function to prompt the
 user to select the type of query to use. The selected query type
