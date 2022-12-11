@@ -92,8 +92,8 @@ function."
 (defun chatgpt-display ()
   "Displays the ChatGPT buffer and centers the max-point if it is not in the current view."
   (save-selected-window
-    (let ((buf (get-buffer-create "*ChatGPT*"))
-          (win (get-buffer-window "*ChatGPT*")))
+    (let* ((buf (get-buffer-create "*ChatGPT*"))
+           (win (get-buffer-window buf)))
       (pop-to-buffer buf)
       (unless (equal (current-buffer) buf)
         (select-window win)
@@ -107,7 +107,7 @@ function."
 
 The query is inserted into the *ChatGPT* buffer with bold text,
 and the response from the ChatGPT process is appended to the
-buffer. If chatgpt-enable-loading-ellipsis is non-nil, a loading
+buffer. If `chatgpt-enable-loading-ellipsis' is non-nil, a loading
 ellipsis is displayed in the buffer while waiting for the
 response.
 
