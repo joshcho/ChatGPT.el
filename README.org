@@ -17,9 +17,8 @@ Follow instructions at [[https://github.com/acheong08/ChatGPT/wiki/Setup][acheon
 
 *** Quelpa
 #+begin_src emacs-lisp
-(quelpa '(chatgpt :fetcher git :url "https://github.com/joshcho/ChatGPT.el.git"))
 (use-package chatgpt
-  :quelpa t
+  :quelpa ((chatgpt :fetcher git :url "https://github.com/joshcho/ChatGPT.el.git") :upgrade t)
   :bind ("C-c q" . chatgpt-query)
   :config
   (setq chatgpt-repo-path (expand-file-name "ChatGPT.el" quelpa-build-dir)))
@@ -44,10 +43,9 @@ Customize ~chatgpt-query-types~ for your own types.
 #+end_src
 
 ** Misc.
+- Every query is part of a conversation, so it will learn based on what you ask.
 - Don't use "custom" as a type. It's reserved for custom prepend string through minibuffer.
 
 ** Future Roadmap
 - Authenticate using browser
 - Add more query types
-- Add structure to \*ChatGPT\* buffer
-- Don't force ~config.json~ in home
