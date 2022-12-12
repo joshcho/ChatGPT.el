@@ -89,7 +89,8 @@ function."
   "Stops the ChatGPT server."
   (interactive)
   (when chatgpt-waiting-dot-timer
-    (cancel-timer chatgpt-waiting-dot-timer))
+    (cancel-timer chatgpt-waiting-dot-timer)
+    (setq chatgpt-waiting-dot-timer nil))
   (epc:stop-epc chatgpt-process)
   (setq chatgpt-process nil)
   (message "Stop ChatGPT process."))
@@ -160,7 +161,8 @@ users."
    (deferred:nextc it
      (lambda (message)
        (when chatgpt-enable-loading-ellipsis
-         (cancel-timer chatgpt-waiting-dot-timer))
+         (cancel-timer chatgpt-waiting-dot-timer)
+         (setq chatgpt-waiting-dot-timer nil))
        (with-current-buffer (get-buffer-create "*ChatGPT*")
          (save-excursion
            (goto-char (point-max))
