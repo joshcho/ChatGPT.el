@@ -15,7 +15,7 @@ chatgpt install
 
 This will prompt you to log in with your browser for the first time only.
 
-NOTE: The setup should happen automatically first time you query. If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
+NOTE: The setup should happen automatically first time you query, but it's a bit buggy. If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
 
 *** Straight
 #+begin_src emacs-lisp
@@ -56,6 +56,7 @@ Customize ~chatgpt-query-types~ for your own types.
 ** Misc.
 - Every query is part of a conversation, so it will learn based on what you ask.
 - Don't use "custom" as a type. It's reserved for custom prepend string through minibuffer.
+- Check out [[https://github.com/semiosis/pen.el][Pen.el]]
 
 ** Future Roadmap
 - Authenticate using browser
