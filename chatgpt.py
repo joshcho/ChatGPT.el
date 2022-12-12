@@ -1,19 +1,15 @@
-# chatgpt-emacs.py
+# chatgpt.py
 
-from revChatGPT.revChatGPT import Chatbot
 from epc.server import EPCServer
-import json
-import os
-import time
+from chatgpt_wrapper import ChatGPT
 
 server = EPCServer(('localhost', 0))
-with open(os.path.expanduser("~/config.json"), 'r') as file:
-    config = json.load(file)
-chatbot = Chatbot(config)
+
+bot = ChatGPT()
 
 @server.register_function
 def query(query):
-    return chatbot.get_chat_response(query)
+    return bot.ask(query)
 
 server.print_port()
 server.serve_forever()

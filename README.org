@@ -3,27 +3,36 @@
 [[https://chat.openai.com/chat][ChatGPT]] in Emacs. [[https://www.youtube.com/watch?v=4oUrm4CnIjo][Demo]]
 
 ** Installation
-*** Authentication
-Follow instructions at [[https://github.com/acheong08/ChatGPT/wiki/Setup][acheong08/ChatGPT]] and create ~config.json~ in your *home directory*, not local.
+*** Dependency
 
-*Note*: It seems OpenAI is preventing people from accessing ChatGPT in non-standard ways. Make sure to check the instructions at [[https://github.com/acheong08/ChatGPT/wiki/Setup][acheong08/ChatGPT]] if your method of authentication breaks. revChatGPT has issues, and will be switching to a different wrapper.
+#+begin_src shell
+pip install git+https://github.com/mmabrouk/chatgpt-wrapper
+#+end_src
+
+#+begin_src shell
+chatgpt install
+#+end_src
+
+This will prompt you to log in with your browser for the first time only.
+
+NOTE: The setup should happen automatically first time you query. If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
 
 *** Straight
 #+begin_src emacs-lisp
 (use-package chatgpt
   :straight (:host github :repo "joshcho/ChatGPT.el" :files ("dist" "*.el"))
-  :bind ("C-c q" . chatgpt-query)
-  :config
-  (setq chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/"))
+  :init
+  (setq chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/")
+  :bind ("C-c q" . chatgpt-query))
 #+end_src
 
 *** Quelpa
 #+begin_src emacs-lisp
 (use-package chatgpt
   :quelpa ((chatgpt :fetcher git :url "https://github.com/joshcho/ChatGPT.el.git") :upgrade t)
-  :bind ("C-c q" . chatgpt-query)
-  :config
-  (setq chatgpt-repo-path (expand-file-name "ChatGPT.el" quelpa-build-dir)))
+  :init
+  (setq chatgpt-repo-path (expand-file-name "ChatGPT.el" quelpa-build-dir))
+  :bind ("C-c q" . chatgpt-query))
 #+end_src
 
 ** Usage

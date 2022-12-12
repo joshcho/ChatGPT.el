@@ -47,6 +47,11 @@
   :type 'boolean
   :group 'chatgpt)
 
+(defcustom chatgpt-python-interpreter "python"
+  "The Python interpreter used for ChatGPT."
+  :type 'string
+  :group 'chatgpt)
+
 (defvar chatgpt-process nil
   "The ChatGPT process.")
 
@@ -67,10 +72,11 @@ successful.
 If ChatGPT server is not initialized, `chatgpt-query' calls this
 function."
   (interactive)
-  (when (equal (shell-command-to-string "pip3 list | grep revChatGPT") "")
-    (shell-command "pip3 install revChatGPT")
-    (message "revChatGPT installed through pip."))
-  (setq chatgpt-process (epc:start-epc "python" (list (expand-file-name (format "%schatgpt.py" chatgpt-repo-path)))))
+  (when (equal (shell-command-to-string "pip list | grep chatGPT") "")
+    (shell-command "pip install git+https://github.com/mmabrouk/chatgpt-wrapper")
+    (message "chatgpt-wrapper installed through pip.")
+    (shell-command "chatgpt install &"))
+  (setq chatgpt-process (epc:start-epc chatgpt-python-interpreter (list (expand-file-name (format "%schatgpt.py" chatgpt-repo-path)))))
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
@@ -87,6 +93,13 @@ function."
   (epc:stop-epc chatgpt-process)
   (setq chatgpt-process nil)
   (message "Stop ChatGPT process."))
+
+;;;###autoload
+(defun chatgpt-reset ()
+  "Reset the ChatGPT server. The same session is maintained."
+  (interactive)
+  (chatgpt-stop)
+  (chatgpt-init))
 
 ;;;###autoload
 (defun chatgpt-display ()
@@ -144,21 +157,20 @@ users."
   (deferred:$
    (epc:call-deferred chatgpt-process 'query (list query))
    (deferred:nextc it
-     (lambda (response)
-       (let ((message (plist-get response :message)))
-         (when chatgpt-enable-loading-ellipsis
-           (cancel-timer chatgpt-waiting-dot-timer))
-         (with-current-buffer (get-buffer-create "*ChatGPT*")
-           (save-excursion
-             (goto-char (point-max))
-             (beginning-of-line)
-             (kill-line)
-             (setq kill-ring (cdr kill-ring))
-             (insert message)
-             (newline)
-             (newline)))
-         (when chatgpt-display-on-response
-           (chatgpt-display)))))))
+     (lambda (message)
+       (when chatgpt-enable-loading-ellipsis
+         (cancel-timer chatgpt-waiting-dot-timer))
+       (with-current-buffer (get-buffer-create "*ChatGPT*")
+         (save-excursion
+           (goto-char (point-max))
+           (beginning-of-line)
+           (kill-line)
+           (setq kill-ring (cdr kill-ring))
+           (insert message)
+           (newline)
+           (newline)))
+       (when chatgpt-display-on-response
+         (chatgpt-display))))))
 
 (defun chatgpt--query-by-type (query query-type)
   "Query ChatGPT with a given QUERY and QUERY-TYPE.
@@ -220,9 +232,11 @@ Supported query types are:
                          (buffer-substring-no-properties (region-beginning) (region-end))
                        (read-from-minibuffer "ChatGPT Query: "))))
   ;; add support for region here, based on modes
-  (if (region-active-p)
-      (chatgpt-query-by-type query)
-    (chatgpt--query query)))
+  (if chatgpt-waiting-dot-timer
+      (message "Already waiting on a ChatGPT query. If there was an error with your previous query, try M-x chatgpt-reset")
+    (if (region-active-p)
+        (chatgpt-query-by-type query)
+      (chatgpt--query query))))
 
 (provide 'chatgpt)
 ;;; chatgpt.el ends here
