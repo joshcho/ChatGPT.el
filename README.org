@@ -6,7 +6,7 @@
 *** Authentication
 Follow instructions at [[https://github.com/acheong08/ChatGPT/wiki/Setup][acheong08/ChatGPT]] and create ~config.json~ in your *home directory*, not local.
 
-*Note*: It seems OpenAI is preventing people from accessing ChatGPT in various ways. Make sure to check the instructions at [[https://github.com/acheong08/ChatGPT/wiki/Setup][acheong08/ChatGPT]] if your method of authentication breaks.
+*Note*: It seems OpenAI is preventing people from accessing ChatGPT in non-standard ways. Make sure to check the instructions at [[https://github.com/acheong08/ChatGPT/wiki/Setup][acheong08/ChatGPT]] if your method of authentication breaks.
 
 *** Straight
 #+begin_src emacs-lisp
