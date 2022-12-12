@@ -57,7 +57,3 @@ Customize ~chatgpt-query-types~ for your own types.
 - Every query is part of a conversation, so it will learn based on what you ask.
 - Don't use "custom" as a type. It's reserved for custom prepend string through minibuffer.
 - Check out [[https://github.com/semiosis/pen.el][Pen.el]]
-
-** Future Roadmap
-- Authenticate using browser
-- Add more query types
