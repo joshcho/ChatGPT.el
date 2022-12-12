@@ -104,16 +104,17 @@ function."
 ;;;###autoload
 (defun chatgpt-display ()
   "Displays the ChatGPT buffer and centers the max-point if it is not in the current view."
-  (save-selected-window
-    (let* ((buf (get-buffer-create "*ChatGPT*"))
-           (win (get-buffer-window buf)))
-      (pop-to-buffer buf)
-      (unless (equal (current-buffer) buf)
-        (select-window win)
+  (interactive)
+  (display-buffer "*ChatGPT*")
+  (when-let ((saved-win (get-buffer-window (current-buffer)))
+             (win (get-buffer-window "*ChatGPT*")))
+    (unless (equal (current-buffer) (get-buffer "*ChatGPT*"))
+      (select-window win)
+      (goto-char (point-max))
+      (unless (pos-visible-in-window-p (point-max) win)
         (goto-char (point-max))
-        (unless (pos-visible-in-window-p (point-max) win)
-          (goto-char (point-max))
-          (recenter))))))
+        (recenter))
+      (select-window saved-win))))
 
 (defun chatgpt--query (query)
   "Send QUERY to the ChatGPT process.
