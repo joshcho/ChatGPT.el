@@ -39,6 +39,11 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
 ** Usage
 - Press ~C-c q~ to query ChatGPT.
 - Select region before ~C-c q~ to query ChatGPT by type.
+- If your login is expired, M-x chatgpt-login.
+
+** Troubleshooting
+
+- If you get errors with login, try closing all firefox instances by doing "pkill firefox" in the shell. Then M-x chatgpt-login again.
 
 ** Customization
 Customize ~chatgpt-query-types~ for your own types.

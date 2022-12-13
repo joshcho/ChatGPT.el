@@ -61,6 +61,12 @@
   :group 'chatgpt)
 
 ;;;###autoload
+(defun chatgpt-login ()
+  "Log in to ChatGPT."
+  (interactive)
+  (shell-command "chatgpt install &"))
+
+;;;###autoload
 (defun chatgpt-init ()
   "Initialize the ChatGPT server.
 
@@ -75,7 +81,7 @@ function."
   (when (equal (shell-command-to-string "pip list | grep chatGPT") "")
     (shell-command "pip install git+https://github.com/mmabrouk/chatgpt-wrapper")
     (message "chatgpt-wrapper installed through pip.")
-    (shell-command "chatgpt install &"))
+    (chatgpt-login))
   (setq chatgpt-process (epc:start-epc chatgpt-python-interpreter (list (expand-file-name (format "%schatgpt.py" chatgpt-repo-path)))))
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (visual-line-mode 1))
