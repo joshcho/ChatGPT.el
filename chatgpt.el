@@ -33,17 +33,17 @@
   :group 'chatgpt)
 
 (defcustom chatgpt-enable-loading-ellipsis t
-  "Controls whether the loading ellipsis animation is displayed in the ChatGPT buffer."
+  "Whether the ellipsis animation is displayed in *ChatGPT*."
   :type 'boolean
   :group 'chatgpt)
 
 (defcustom chatgpt-display-on-query t
-  "Controls whether the ChatGPT buffer is displayed when a query is sent to the model."
+  "Whether *ChatGPT* is displayed when a query is sent."
   :type 'boolean
   :group 'chatgpt)
 
 (defcustom chatgpt-display-on-response t
-  "Controls whether the ChatGPT buffer is displayed when a response is received from the model."
+  "Whether *ChatGPT* is displayed when a response is received."
   :type 'boolean
   :group 'chatgpt)
 
@@ -110,7 +110,7 @@ function."
 
 ;;;###autoload
 (defun chatgpt-display ()
-  "Displays the ChatGPT buffer and centers the max-point if it is not in the current view."
+  "Displays *ChatGPT*."
   (interactive)
   (display-buffer "*ChatGPT*")
   (when-let ((saved-win (get-buffer-window (current-buffer)))
@@ -131,6 +131,7 @@ function."
                                  (point))))
 
 (defun chatgpt--insert (message post-message)
+  "Properly insert MESSAGE and POST-MESSAGE into *ChatGPT*."
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (save-excursion
       (goto-char (point-max))
