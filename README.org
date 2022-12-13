@@ -17,7 +17,7 @@ This will prompt you to log in with your browser for the first time only.
 
 NOTE: The setup should happen automatically first time you query, but it's a bit buggy. If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
 
-*** Straight
+*** [[https://github.com/radian-software/straight.el][Straight]]
 #+begin_src emacs-lisp
 (use-package chatgpt
   :straight (:host github :repo "joshcho/ChatGPT.el" :files ("dist" "*.el"))
@@ -26,8 +26,9 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
   :bind ("C-c q" . chatgpt-query))
 #+end_src
 
-*** Quelpa
+*** [[https://github.com/quelpa/quelpa][Quelpa]]
 #+begin_src emacs-lisp
+(require 'quelpa-use-package)
 (use-package chatgpt
   :quelpa ((chatgpt :fetcher git :url "https://github.com/joshcho/ChatGPT.el.git") :upgrade t)
   :init
