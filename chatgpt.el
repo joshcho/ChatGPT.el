@@ -117,6 +117,24 @@ function."
         (recenter))
       (select-window saved-win))))
 
+(defun chatgpt--clear-line ()
+  "Clear line in *ChatGPT*."
+  (delete-region (save-excursion (beginning-of-line)
+                                 (point))
+                 (save-excursion (end-of-line)
+                                 (point))))
+
+(defun chatgpt--insert (message post-message)
+  (with-current-buffer (get-buffer-create "*ChatGPT*")
+    (save-excursion
+      (goto-char (point-max))
+      (chatgpt--clear-line)
+      (insert message)
+      (newline)
+      (newline)
+      (when post-message
+        (insert post-message)))))
+
 (defun chatgpt--query (query)
   "Send QUERY to the ChatGPT process.
 
@@ -131,16 +149,9 @@ This function is intended to be called internally by the
 users."
   (unless chatgpt-process
     (chatgpt-init))
-  (with-current-buffer (get-buffer-create "*ChatGPT*")
-    (save-excursion
-      (goto-char (point-max))
-      ;; (when (equal (thing-at-point 'line) "\n")
-      ;;   (chatgpt--delete-line))
-      (insert (propertize query 'face 'bold))
-      (newline)
-      (newline)
-      (unless chatgpt-enable-loading-ellipsis
-        (insert (concat "Waiting for ChatGPT...")))))
+  (chatgpt--insert (propertize query 'face 'bold)
+                   (unless chatgpt-enable-loading-ellipsis
+                     (insert (concat "Waiting for ChatGPT..."))))
   (when chatgpt-enable-loading-ellipsis
     (setq chatgpt-waiting-dot-timer
           (run-with-timer 0.5 0.5
@@ -150,9 +161,7 @@ users."
                                 (goto-char (point-max))
                                 (let ((line (thing-at-point 'line)))
                                   (when (>= (length line) 3)
-                                    (beginning-of-line)
-                                    (kill-line)
-                                    (setq kill-ring (cdr kill-ring)))
+                                    (chatgpt--clear-line))
                                   (insert "."))))))))
   (when chatgpt-display-on-query
     (chatgpt-display))
@@ -163,15 +172,7 @@ users."
        (when chatgpt-enable-loading-ellipsis
          (cancel-timer chatgpt-waiting-dot-timer)
          (setq chatgpt-waiting-dot-timer nil))
-       (with-current-buffer (get-buffer-create "*ChatGPT*")
-         (save-excursion
-           (goto-char (point-max))
-           (beginning-of-line)
-           (kill-line)
-           (setq kill-ring (cdr kill-ring))
-           (insert message)
-           (newline)
-           (newline)))
+       (chatgpt--insert message nil)
        (when chatgpt-display-on-response
          (chatgpt-display))))))
 

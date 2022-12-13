@@ -5,9 +5,13 @@ from chatgpt_wrapper import ChatGPT
 
 server = EPCServer(('localhost', 0))
 
+bot = None
+
 @server.register_function
 def query(query):
-    bot = ChatGPT()
+    global bot
+    if bot == None:
+        bot = ChatGPT()
     return bot.ask(query)
 
 server.print_port()
