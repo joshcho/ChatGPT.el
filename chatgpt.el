@@ -4,7 +4,7 @@
 
 ;; Author: Jungmin "Josh" Cho <joshchonpc@gmail.com>
 ;; Version: 0.1
-;; Package-Requires: ((epc "0.1.1") ("deferred" 0.5.1))
+;; Package-Requires: ((epc "0.1.1") (deferred "0.5.1"))
 ;; Keywords: ai
 ;; URL: https://github.com/joshcho/ChatGPT.el
 
