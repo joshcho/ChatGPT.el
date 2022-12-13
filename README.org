@@ -43,7 +43,8 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
 
 ** Troubleshooting
 
-- If you get a ~deferred error~ with "Browser closed" messages, try closing all firefox instances by doing "pkill firefox" in the shell. Then M-x chatgpt-stop, followed by M-x chatgpt-query (or ~C-c q~).
+- If you get a ~deferred error~ with "Browser closed" messages, try closing all firefox instances by doing "pkill firefox" in the shell. Then M-x ~chatgpt-reset~, followed by M-x chatgpt-query (or ~C-c q~).
+- You can also try ~chatgpt-reset~ to debug any other issues.
 
 ** Customization
 Customize ~chatgpt-query-types~ for your own types.
