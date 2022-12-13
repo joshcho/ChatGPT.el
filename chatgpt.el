@@ -94,9 +94,7 @@ function."
 (defun chatgpt-stop ()
   "Stops the ChatGPT server."
   (interactive)
-  (when chatgpt-waiting-dot-timer
-    (cancel-timer chatgpt-waiting-dot-timer)
-    (setq chatgpt-waiting-dot-timer nil))
+  (chatgpt--stop-wait)
   (epc:stop-epc chatgpt-process)
   (setq chatgpt-process nil)
   (message "Stop ChatGPT process."))
@@ -130,17 +128,49 @@ function."
                  (save-excursion (end-of-line)
                                  (point))))
 
-(defun chatgpt--insert (message post-message)
-  "Properly insert MESSAGE and POST-MESSAGE into *ChatGPT*."
+(defun chatgpt--identifier-string (id)
+  "Identifier string corresponding to ID."
+  (format "[%s]" id))
+
+(defun chatgpt--regex-string (id)
+  "Regex corresponding to ID."
+  (format "\\[%s\\]" id))
+
+(defun chatgpt--goto-identifier (id)
+  "Go to point of ID."
+  (goto-char (point-min))
+  (re-search-forward (chatgpt--regex-string id))
+  (next-line))
+
+(defun chatgpt--insert-query (query)
+  "Insert QUERY into *ChatGPT*."
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (save-excursion
       (goto-char (point-max))
+      (incf chatgpt-id)
+      (insert (format "\n\n%s\n%s\n%s"
+                      (propertize query 'face 'bold)
+                      (chatgpt--identifier-string chatgpt-id)
+                      (if chatgpt-enable-loading-ellipsis
+                          ""
+                        (concat "Waiting for ChatGPT...")))))))
+
+(defun chatgpt--insert-response (response)
+  "Insert RESPONSE into *ChatGPT*."
+  (with-current-buffer (get-buffer-create "*ChatGPT*")
+    (save-excursion
+      (chatgpt--goto-identifier chatgpt-id)
       (chatgpt--clear-line)
-      (insert message)
-      (newline)
-      (newline)
-      (when post-message
-        (insert post-message)))))
+      (insert response))))
+
+(defun chatgpt--stop-wait ()
+  "Stop waiting for a response."
+  (when chatgpt-waiting-dot-timer
+    (cancel-timer chatgpt-waiting-dot-timer)
+    (setq chatgpt-waiting-dot-timer nil)))
+
+(defvar chatgpt-id 0
+  "Tracks responses in the background.")
 
 (defun chatgpt--query (query)
   "Send QUERY to the ChatGPT process.
@@ -156,16 +186,14 @@ This function is intended to be called internally by the
 users."
   (unless chatgpt-process
     (chatgpt-init))
-  (chatgpt--insert (propertize query 'face 'bold)
-                   (unless chatgpt-enable-loading-ellipsis
-                     (insert (concat "Waiting for ChatGPT..."))))
+  (chatgpt--insert-query query)
   (when chatgpt-enable-loading-ellipsis
     (setq chatgpt-waiting-dot-timer
           (run-with-timer 0.5 0.5
                           (lambda ()
                             (with-current-buffer (get-buffer-create "*ChatGPT*")
                               (save-excursion
-                                (goto-char (point-max))
+                                (chatgpt--goto-identifier chatgpt-id)
                                 (let ((line (thing-at-point 'line)))
                                   (when (>= (length line) 3)
                                     (chatgpt--clear-line))
@@ -175,11 +203,9 @@ users."
   (deferred:$
    (epc:call-deferred chatgpt-process 'query (list query))
    (deferred:nextc it
-     (lambda (message)
-       (when chatgpt-enable-loading-ellipsis
-         (cancel-timer chatgpt-waiting-dot-timer)
-         (setq chatgpt-waiting-dot-timer nil))
-       (chatgpt--insert message nil)
+     (lambda (response)
+       (chatgpt--stop-wait)
+       (chatgpt--insert-response response)
        (when chatgpt-display-on-response
          (chatgpt-display))))))
 
