@@ -1,6 +1,8 @@
 #+TITLE: ChatGPT.el
 
-[[https://chat.openai.com/chat][ChatGPT]] in Emacs. [[https://www.youtube.com/watch?v=4oUrm4CnIjo][Demo]]
+[[https://chat.openai.com/chat][ChatGPT]] in Emacs.
+
+[[https://www.youtube.com/watch?v=4oUrm4CnIjo][Basic Demo]] [[https://www.youtube.com/watch?v=1LMlt5Cv4fY][Queue Demo]]
 
 ** Installation
 *** Dependency
@@ -39,11 +41,13 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
 ** Usage
 - Press ~C-c q~ to query ChatGPT.
 - Select region before ~C-c q~ to query ChatGPT by type.
+- You can queue queries one after another.
 - If your login is expired, M-x chatgpt-login.
 
 ** Troubleshooting
 
-- If you get a ~deferred error~ with "Browser closed" messages, try closing all firefox instances by doing "pkill firefox" in the shell. Then M-x chatgpt-stop, followed by M-x chatgpt-query (or ~C-c q~).
+- If you get a ~deferred error~ with "Browser closed" messages, try closing all firefox instances by doing "pkill firefox" in the shell. Then M-x ~chatgpt-reset~, followed by M-x chatgpt-query (or ~C-c q~).
+- You can also try ~chatgpt-reset~ to debug any other issues.
 
 ** Customization
 Customize ~chatgpt-query-types~ for your own types.

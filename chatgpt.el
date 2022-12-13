@@ -87,16 +87,15 @@ function."
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
 
-(defvar chatgpt-waiting-dot-timer nil
-  "Timer to update the waiting message in the ChatGPT buffer.")
+(defvar chatgpt-wait-timers (make-hash-table)
+  "Timers to update the waiting message in the ChatGPT buffer.")
 
 ;;;###autoload
 (defun chatgpt-stop ()
   "Stops the ChatGPT server."
   (interactive)
-  (when chatgpt-waiting-dot-timer
-    (cancel-timer chatgpt-waiting-dot-timer)
-    (setq chatgpt-waiting-dot-timer nil))
+  (dolist (id (hash-table-keys chatgpt-wait-timers))
+    (chatgpt--stop-wait id))
   (epc:stop-epc chatgpt-process)
   (setq chatgpt-process nil)
   (message "Stop ChatGPT process."))
@@ -125,22 +124,80 @@ function."
 
 (defun chatgpt--clear-line ()
   "Clear line in *ChatGPT*."
+  (cl-assert (equal (current-buffer) (get-buffer "*ChatGPT*")))
   (delete-region (save-excursion (beginning-of-line)
                                  (point))
                  (save-excursion (end-of-line)
                                  (point))))
 
-(defun chatgpt--insert (message post-message)
-  "Properly insert MESSAGE and POST-MESSAGE into *ChatGPT*."
+(defun chatgpt--identifier-string (id)
+  "Identifier string corresponding to ID."
+  (format "cg?[%s]" id))
+
+(defun chatgpt--regex-string (id)
+  "Regex corresponding to ID."
+  (format "cg\\?\\[%s\\]" id))
+
+(defun chatgpt--goto-identifier (id)
+  "Go to response of ID."
+  (cl-assert (equal (current-buffer) (get-buffer "*ChatGPT*")))
+  (goto-char (point-min))
+  (re-search-forward (chatgpt--regex-string id))
+  (forward-line))
+
+(defun chatgpt--insert-query (query id)
+  "Insert QUERY with ID into *ChatGPT*."
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (save-excursion
       (goto-char (point-max))
+      (insert (format "%s%s\n%s\n%s"
+                      (if (= (point-min) (point))
+                          ""
+                        "\n\n")
+                      (propertize query 'face 'bold)
+                      (propertize
+                       (chatgpt--identifier-string id)
+                       'invisible t)
+                      (if chatgpt-enable-loading-ellipsis
+                          ""
+                        (concat "Waiting for ChatGPT...")))))))
+
+(defun chatgpt--insert-response (response id)
+  "Insert RESPONSE into *ChatGPT* for ID."
+  (with-current-buffer (get-buffer-create "*ChatGPT*")
+    (save-excursion
+      (chatgpt--goto-identifier id)
       (chatgpt--clear-line)
-      (insert message)
-      (newline)
-      (newline)
-      (when post-message
-        (insert post-message)))))
+      (insert response))))
+
+(defun chatgpt--add-timer (id)
+  "Add timer for ID to 'chatgpt-wait-timers'."
+  (cl-assert (null (gethash id chatgpt-wait-timers)))
+  (puthash id
+           (run-with-timer 0.5 0.5
+                           (eval
+                            `(lambda ()
+                               (with-current-buffer (get-buffer-create "*ChatGPT*")
+                                 (save-excursion
+                                   (chatgpt--goto-identifier ,id)
+                                   (let ((line (thing-at-point 'line)))
+                                     (when (>= (+ (length line)
+                                                  (if (eq (substring line -1) "\n")
+                                                      0
+                                                    1))
+                                               4)
+                                       (chatgpt--clear-line))
+                                     (insert ".")))))))
+           chatgpt-wait-timers))
+
+(defun chatgpt--stop-wait (id)
+  "Stop waiting for a response from ID."
+  (when-let (timer (gethash id chatgpt-wait-timers))
+    (cancel-timer timer)
+    (remhash id chatgpt-wait-timers)))
+
+(defvar chatgpt-id 0
+  "Tracks responses in the background.")
 
 (defun chatgpt--query (query)
   "Send QUERY to the ChatGPT process.
@@ -156,32 +213,20 @@ This function is intended to be called internally by the
 users."
   (unless chatgpt-process
     (chatgpt-init))
-  (chatgpt--insert (propertize query 'face 'bold)
-                   (unless chatgpt-enable-loading-ellipsis
-                     (insert (concat "Waiting for ChatGPT..."))))
-  (when chatgpt-enable-loading-ellipsis
-    (setq chatgpt-waiting-dot-timer
-          (run-with-timer 0.5 0.5
-                          (lambda ()
-                            (with-current-buffer (get-buffer-create "*ChatGPT*")
-                              (save-excursion
-                                (goto-char (point-max))
-                                (let ((line (thing-at-point 'line)))
-                                  (when (>= (length line) 3)
-                                    (chatgpt--clear-line))
-                                  (insert "."))))))))
-  (when chatgpt-display-on-query
-    (chatgpt-display))
-  (deferred:$
-   (epc:call-deferred chatgpt-process 'query (list query))
-   (deferred:nextc it
-     (lambda (message)
-       (when chatgpt-enable-loading-ellipsis
-         (cancel-timer chatgpt-waiting-dot-timer)
-         (setq chatgpt-waiting-dot-timer nil))
-       (chatgpt--insert message nil)
-       (when chatgpt-display-on-response
-         (chatgpt-display))))))
+  (let ((saved-id (cl-incf chatgpt-id)))
+    (chatgpt--insert-query query saved-id)
+    (when chatgpt-enable-loading-ellipsis
+      (chatgpt--add-timer saved-id))
+    (when chatgpt-display-on-query
+      (chatgpt-display))
+    (deferred:$
+     (epc:call-deferred chatgpt-process 'query (list query))
+     (eval `(deferred:nextc it
+              (lambda (response)
+                (chatgpt--stop-wait ,saved-id)
+                (chatgpt--insert-response response ,saved-id)
+                (when chatgpt-display-on-response
+                  (chatgpt-display))))))))
 
 (defun chatgpt--query-by-type (query query-type)
   "Query ChatGPT with a given QUERY and QUERY-TYPE.
@@ -242,12 +287,14 @@ Supported query types are:
   (interactive (list (if (region-active-p)
                          (buffer-substring-no-properties (region-beginning) (region-end))
                        (read-from-minibuffer "ChatGPT Query: "))))
-  ;; add support for region here, based on modes
-  (if chatgpt-waiting-dot-timer
-      (message "Already waiting on a ChatGPT query. If there was an error with your previous query, try M-x chatgpt-reset")
-    (if (region-active-p)
-        (chatgpt-query-by-type query)
-      (chatgpt--query query))))
+  ;; (if chatgpt-waiting-dot-timer
+  ;;     (message "Already waiting on a ChatGPT query. If there was an error with your previous query, try M-x chatgpt-reset")
+  ;;   (if (region-active-p)
+  ;;       (chatgpt-query-by-type query)
+  ;;     (chatgpt--query query)))
+  (if (region-active-p)
+      (chatgpt-query-by-type query)
+    (chatgpt--query query)))
 
 (provide 'chatgpt)
 ;;; chatgpt.el ends here
