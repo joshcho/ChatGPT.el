@@ -59,6 +59,10 @@ dotspacemacs-additional-packages
 
 NOTE: Assumes Quelpa installation.
 
+*** [[https://github.com/doomemacs/doomemacs][Doom Emacs]]
+
+I am unfamiliar with Doom, so pull requests for how to install with Doom are welcome.
+
 ** Usage
 - Press ~C-c q~ to query ChatGPT.
 - Select region before ~C-c q~ to query ChatGPT by type.
