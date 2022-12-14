@@ -16,7 +16,7 @@ pip install git+https://github.com/mmabrouk/chatgpt-wrapper
 chatgpt install
 #+end_src
 
-This will prompt you to log in with your browser for the first time only.
+This will prompt you to log in with your browser.
 
 NOTE: The setup should happen automatically first time you query, but it's a bit buggy. If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
 
@@ -26,6 +26,7 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
   :straight (:host github :repo "joshcho/ChatGPT.el" :files ("dist" "*.el"))
   :init
   (setq chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/")
+  (setq chatgpt-python-interpreter "python")
   :bind ("C-c q" . chatgpt-query))
 #+end_src
 
@@ -36,6 +37,7 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
   :quelpa ((chatgpt :fetcher git :url "https://github.com/joshcho/ChatGPT.el.git") :upgrade t)
   :init
   (setq chatgpt-repo-path (expand-file-name "chatgpt/" quelpa-build-dir))
+  (setq chatgpt-python-interpreter "python")
   :bind ("C-c q" . chatgpt-query))
 #+end_src
 
@@ -43,25 +45,26 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
 - Press ~C-c q~ to query ChatGPT.
 - Select region before ~C-c q~ to query ChatGPT by type.
 - You can queue queries one after another.
-- If your login is expired, M-x chatgpt-login.
+- If your login seems expired, run "chatgpt install" in the shell.
 
 ** Troubleshooting
 
-- If you get a ~deferred error~ with "Browser closed" messages, try closing all firefox instances by doing "pkill firefox" in the shell. Then M-x chatgpt-reset, followed by M-x chatgpt-query (or ~C-c q~).
-- You can also try chatgpt-reset to debug any other issues.
+- The most reliable troubleshooting method is running "pkill firefox" then "chatgpt install" to reauthenticate yourself (in the shell). Then try M-x chatgpt-init.
+- If for some reason the ellipses keep blinking, try M-x chatgpt-stop.
+- Make sure you have set the right ~chatgpt-python-interpreter~. Perhaps ~(setq chatgpt-python-interpreter "python3")~?
 
 ** Customization
-Customize ~chatgpt-query-types~ for your own types.
+Customize ~chatgpt-query-format-string-map~ for your own types.
 
 #+begin_src emacs-lisp
 (setq chatgpt-query-format-string-map '(
-                            ;; ChatGPT.el defaults
-                            ("doc" . "Please write the documentation for the following function.\n\n%s")
-                            ("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
-                            ("understand" . "What does the following function do?\n\n%s")
-                            ("improve" . "Please improve the following code.\n\n%s")
-                            ;; your new prompt
-                            ("my-custom-type" . "My custom prompt.\n\n%s")))
+                                        ;; ChatGPT.el defaults
+                                        ("doc" . "Please write the documentation for the following function.\n\n%s")
+                                        ("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
+                                        ("understand" . "What does the following function do?\n\n%s")
+                                        ("improve" . "Please improve the following code.\n\n%s")
+                                        ;; your new prompt
+                                        ("my-custom-type" . "My custom prompt.\n\n%s")))
 #+end_src
 
 ** Misc.
