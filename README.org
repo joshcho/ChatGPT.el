@@ -8,6 +8,7 @@
 ** Installation
 *** Dependency
 #+begin_src shell
+pip install epc
 pip install git+https://github.com/mmabrouk/chatgpt-wrapper
 #+end_src
 
