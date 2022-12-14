@@ -54,7 +54,7 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
 Customize ~chatgpt-query-types~ for your own types.
 
 #+begin_src emacs-lisp
-(setq chatgpt-query-types '(
+(setq chatgpt-query-format-string-map '(
                             ;; ChatGPT.el defaults
                             ("doc" . "Please write the documentation for the following function.\n\n%s")
                             ("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
