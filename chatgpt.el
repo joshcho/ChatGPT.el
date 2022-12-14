@@ -14,6 +14,7 @@
 
 (require 'epc)
 (require 'deferred)
+(require 'python)
 
 ;;; Code:
 
@@ -47,24 +48,19 @@
   :type 'boolean
   :group 'chatgpt)
 
-(defcustom chatgpt-python-interpreter "python"
-  "The Python interpreter used for ChatGPT."
+(defcustom chatgpt-repo-path nil
+  "The path of ChatGPT.el repository."
   :type 'string
   :group 'chatgpt)
 
 (defvar chatgpt-process nil
   "The ChatGPT process.")
 
-(defcustom chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/"
-  "The path of ChatGPT.el repository."
-  :type 'string
-  :group 'chatgpt)
-
 ;;;###autoload
-(defun chatgpt-login ()
-  "Log in to ChatGPT."
-  (interactive)
-  (shell-command "chatgpt install &"))
+;; (defun chatgpt-login ()
+;;   "Log in to ChatGPT."
+;;   (interactive)
+;;   (shell-command "chatgpt install &"))
 
 ;;;###autoload
 (defun chatgpt-init ()
@@ -82,7 +78,11 @@ function."
     (shell-command "pip install git+https://github.com/mmabrouk/chatgpt-wrapper")
     (message "chatgpt-wrapper installed through pip.")
     (chatgpt-login))
-  (setq chatgpt-process (epc:start-epc chatgpt-python-interpreter (list (expand-file-name (format "%schatgpt.py" chatgpt-repo-path)))))
+  (when (null chatgpt-repo-path)
+    (error "chatgpt-repo-path is nil. Please set chatgpt-repo-path as specified in joshcho/ChatGPT.el"))
+  (setq chatgpt-process (epc:start-epc python-interpreter (list (expand-file-name
+                                                                 (format "%schatgpt.py"
+                                                                         chatgpt-repo-path)))))
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
