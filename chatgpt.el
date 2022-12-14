@@ -57,10 +57,10 @@
   "The ChatGPT process.")
 
 ;;;###autoload
-;; (defun chatgpt-login ()
-;;   "Log in to ChatGPT."
-;;   (interactive)
-;;   (shell-command "chatgpt install &"))
+(defun chatgpt-login ()
+  "Log in to ChatGPT."
+  (interactive)
+  (shell-command "chatgpt install &"))
 
 ;;;###autoload
 (defun chatgpt-init ()
@@ -71,7 +71,7 @@ initializes the ChatGPT buffer, enabling visual line mode in it. A
 message is displayed to indicate that the initialization was
 successful.
 
-If ChatGPT server is not initialized, `chatgpt-query' calls this
+If ChatGPT server is not initialized, 'chatgpt-query' calls this
 function."
   (interactive)
   (when (equal (shell-command-to-string "pip list | grep chatGPT") "")
