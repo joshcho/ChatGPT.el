@@ -66,7 +66,7 @@ I am unfamiliar with Doom, so pull requests for how to install with Doom are wel
 
 ** Usage
 - Press ~C-c q~ to query ChatGPT.
-- Select region, then ~C-c q~ queries ChatGPT by type.
+- Select region, then ~C-c q~ will prompt you to select a type: doc, bug, understand, or improve. Select a type to query ChatGPT with that prompt.
 - Try making queries in quick succession.
 - If your login is expired, try
 #+begin_src sh
