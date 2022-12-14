@@ -65,8 +65,8 @@ I am unfamiliar with Doom, so pull requests for how to install with Doom are wel
 
 ** Usage
 - Press ~C-c q~ to query ChatGPT.
-- Select region before ~C-c q~ to query ChatGPT by type.
-- You can queue queries one after another.
+- Select region, then ~C-c q~ queries ChatGPT by type.
+- Try making queries in quick succession.
 - If your login is expired, try
 #+begin_src sh
 pkill ms-playwright/firefox && chatgpt install
