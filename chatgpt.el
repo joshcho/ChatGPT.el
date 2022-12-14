@@ -244,7 +244,7 @@ users."
                          (let ((error-str (match-string 1 (error-message-string err))))
                            (chatgpt--insert-error error-str
                                                   ,saved-id)
-                           (when (yes-or-no-p (format "Error encountered. Reset chatgpt? (If reset doesn't work, try \"\"pkill ms-playwright/firefox\"\" in the shell then reset.)" error-str))
+                           (when (yes-or-no-p (format "Error encountered. Reset chatgpt (If reset doesn't work, try \"\"pkill ms-playwright/firefox\"\" in the shell then reset)?" error-str))
                              (chatgpt-reset)))))))))
 
 (defun chatgpt--query-by-type (query query-type)
