@@ -22,6 +22,7 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
 (use-package chatgpt
   :straight (:host github :repo "joshcho/ChatGPT.el" :files ("dist" "*.el"))
   :init
+  (require 'python)
   (setq chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/")
   :bind ("C-c q" . chatgpt-query))
 #+end_src
@@ -32,6 +33,7 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
 (use-package chatgpt
   :quelpa ((chatgpt :fetcher git :url "https://github.com/joshcho/ChatGPT.el.git") :upgrade t)
   :init
+  (require 'python)
   (setq chatgpt-repo-path (expand-file-name "chatgpt/" quelpa-build-dir))
   :bind ("C-c q" . chatgpt-query))
 #+end_src
@@ -40,6 +42,7 @@ NOTE: The setup should happen automatically first time you query, but it's a bit
 
 In ~dotspacemacs/user-config~ function,
 #+begin_src emacs-lisp
+(require 'python)
 (setq chatgpt-repo-path (expand-file-name "chatgpt/" quelpa-build-dir))
 (global-set-key (kbd "C-c q") #'chatgpt-query)
 #+end_src
