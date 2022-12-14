@@ -170,6 +170,14 @@ function."
       (chatgpt--clear-line)
       (insert response))))
 
+(defun chatgpt--insert-error (error-msg id)
+  "Insert ERROR-MSG into *ChatGPT* for ID."
+  (with-current-buffer (get-buffer-create "*ChatGPT*")
+    (save-excursion
+      (chatgpt--goto-identifier id)
+      (chatgpt--clear-line)
+      (insert (format "ERROR: %s" error-msg)))))
+
 (defun chatgpt--add-timer (id)
   "Add timer for ID to 'chatgpt-wait-timers'."
   (cl-assert (null (gethash id chatgpt-wait-timers)))
@@ -220,13 +228,24 @@ users."
     (when chatgpt-display-on-query
       (chatgpt-display))
     (deferred:$
-     (epc:call-deferred chatgpt-process 'query (list query))
-     (eval `(deferred:nextc it
-              (lambda (response)
-                (chatgpt--stop-wait ,saved-id)
-                (chatgpt--insert-response response ,saved-id)
-                (when chatgpt-display-on-response
-                  (chatgpt-display))))))))
+     (deferred:$
+      (epc:call-deferred chatgpt-process 'query (list query))
+      (eval `(deferred:nextc it
+               (lambda (response)
+                 (chatgpt--stop-wait ,saved-id)
+                 (chatgpt--insert-response response ,saved-id)
+                 (when chatgpt-display-on-response
+                   (chatgpt-display))))))
+     (eval
+      `(deferred:error it
+                       (lambda (err)
+                         (chatgpt--stop-wait ,saved-id)
+                         (string-match "\"Error('\\(.*\\)')\"" (error-message-string err))
+                         (let ((error-str (match-string 1 (error-message-string err))))
+                           (chatgpt--insert-error error-str
+                                                  ,saved-id)
+                           (when (yes-or-no-p (format "Error encountered. Reset chatgpt? (If reset doesn't work, try \"\"pkill ms-playwright/firefox\"\" in the shell then reset.)" error-str))
+                             (chatgpt-reset)))))))))
 
 (defun chatgpt--query-by-type (query query-type)
   "Query ChatGPT with a given QUERY and QUERY-TYPE.
