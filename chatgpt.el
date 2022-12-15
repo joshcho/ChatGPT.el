@@ -287,7 +287,10 @@ returns the response."
                          (buffer-substring-no-properties (region-beginning) (region-end))
                        (read-from-minibuffer "ChatGPT Query: "))))
   (let* ((query-type (completing-read "Type of Query: " (cons "custom" (mapcar #'car chatgpt-query-format-string-map)))))
-    (chatgpt--query-by-type query query-type)))
+    (if (or (assoc query-type chatgpt-query-format-string-map)
+            (equal query-type "custom"))
+        (chatgpt--query-by-type query query-type)
+      (chatgpt--query (format "%s\n\n%s" query-type query)))))
 
 ;;;###autoload
 (defun chatgpt-query (query)
