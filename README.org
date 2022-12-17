@@ -62,7 +62,11 @@ NOTE: Assumes Quelpa installation.
 
 *** [[https://github.com/doomemacs/doomemacs][Doom Emacs]]
 
-I am unfamiliar with Doom, so pull requests for how to install with Doom are welcome.
+In ~doomdir/packages.el~,
+#+begin_src emacs-lisp
+(package! chatgpt
+  :recipe (:host github :repo "joshcho/ChatGPT.el"))
+#+end_src
 
 ** Usage
 - Press ~C-c q~ to query ChatGPT.
