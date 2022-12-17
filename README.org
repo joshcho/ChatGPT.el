@@ -15,7 +15,7 @@ chatgpt install
 
 This will prompt you to log in with your browser.
 
-NOTE: The setup should happen automatically first time you query, but it's a bit buggy. If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
+NOTE: If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
 
 *** [[https://github.com/radian-software/straight.el][Straight]]
 #+begin_src emacs-lisp
