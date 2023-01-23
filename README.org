@@ -5,6 +5,10 @@
 - [[https://www.youtube.com/watch?v=4oUrm4CnIjo][Basic Demo]]
 - [[https://www.youtube.com/watch?v=1LMlt5Cv4fY][Queue Demo]]
 
+** News
+
+OpenAI is releasing its ChatGPT API soon. Sign up [[https://share.hsforms.com/1u4goaXwDRKC9-x9IvKno0A4sk30][here]]. ChatGPT.el will support the official API once released. Browser-based API will remain supported.
+
 ** Installation
 *** Dependency
 #+begin_src shell
