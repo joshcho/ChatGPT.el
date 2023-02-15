@@ -90,6 +90,31 @@ function."
 (defvar chatgpt-wait-timers (make-hash-table)
   "Timers to update the waiting message in the ChatGPT buffer.")
 
+(defun chatgpt-get-current-date-string ()
+  "Return the current date string in the format year_month_weekofyear_day."
+  (let* ((now (current-time))
+         (year (format-time-string "%Y" now))
+         (week (format-time-string "%U" now)))
+    (concat year "_week" week)))
+
+(defun chatgpt-write-string-to-file (filename string)
+  "Write STRING to FILENAME, creating the file if it doesn't exist, and appending to it if it does."
+  (with-temp-buffer
+    (insert string)
+    (when (file-exists-p filename)
+      (append-to-file (point-min) (point-max) filename))
+    (unless (file-exists-p filename)
+      (write-region (point-min) (point-max) filename))))
+
+(defcustom chatgpt-record-path nil
+  "The path of ChatGPT.el repository."
+  :type 'string
+  :group 'chatgpt)
+
+
+(defun chatgpt-append-gptchat-record (recordstr &optional record_path)
+  (and chatgpt-record-path (chatgpt-write-string-to-file (format "%s/gptchat_record_%s.txt" (or record_path chatgpt-record-path ) (chatgpt-get-current-date-string)) (concat "\n\n" (make-string 80 ?-) "\n\n"  recordstr))))
+
 ;;;###autoload
 (defun chatgpt-stop ()
   "Stops the ChatGPT server."
@@ -145,24 +170,18 @@ function."
   (re-search-forward (chatgpt--regex-string id))
   (forward-line))
 
-(defun chatgpt-get-buffer-width-by-dash ()
-  "Return the width of the currently focused window in terms of the number of DASH-WIDTH - characters that can fit in the window."
-  (let* ((selected-window (frame-selected-window))
-         (pixel-width (window-pixel-width selected-window)))
-    (floor (- (/ pixel-width (window-font-width selected-window)) 1))))
-
 (defun chatgpt--insert-query (query id)
   "Insert QUERY with ID into *ChatGPT*."
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (save-excursion
       (goto-char (point-max))
       (insert (format "\n%s\n%s >>> %s\n%s\n%s\n%s"
-                      (make-string (chatgpt-get-buffer-width-by-dash) ?-)
+                      (make-string (window-width) ?-)
                       (if (= (point-min) (point))
                           ""
                         "\n\n")
                       (propertize query 'face 'bold)
-                      (make-string (chatgpt-get-buffer-width-by-dash) ?-)
+                      (make-string (window-width) ?-)
                       (propertize
                        (chatgpt--identifier-string id)
                        'invisible t)
@@ -172,6 +191,7 @@ function."
 
 (defun chatgpt--insert-response (response id)
   "Insert RESPONSE into *ChatGPT* for ID."
+  (and chatgpt-record-path (chatgpt-append-gptchat-record response))
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (save-excursion
       (chatgpt--goto-identifier id)
@@ -322,6 +342,7 @@ Supported query types are:
   ;;   (if (region-active-p)
   ;;       (chatgpt-query-by-type query)
   ;;     (chatgpt--query query)))
+  (and chatgpt-record-path (chatgpt-append-gptchat-record (concat "    >>> " query)))
   (if (region-active-p)
       (chatgpt-query-by-type query)
     (chatgpt--query query)))
