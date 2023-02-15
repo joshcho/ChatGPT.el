@@ -146,9 +146,10 @@ function."
   (forward-line))
 
 (defun chatgpt-get-buffer-width-by-dash ()
-  "Return the number of `-` characters that can fit in the current window."
-  (let ((dash-width 1)) ; adjust this value if necessary for different font sizes
-    (/ (window-width) dash-width)))
+  "Return the width of the currently focused window in terms of the number of DASH-WIDTH - characters that can fit in the window."
+  (let* ((selected-window (frame-selected-window))
+         (pixel-width (window-pixel-width selected-window)))
+    (floor (- (/ pixel-width (window-font-width selected-window)) 1))))
 
 (defun chatgpt--insert-query (query id)
   "Insert QUERY with ID into *ChatGPT*."
