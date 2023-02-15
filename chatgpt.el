@@ -145,16 +145,23 @@ function."
   (re-search-forward (chatgpt--regex-string id))
   (forward-line))
 
+(defun chatgpt-get-buffer-width-by-dash ()
+  "Return the number of `-` characters that can fit in the current window."
+  (let ((dash-width 1)) ; adjust this value if necessary for different font sizes
+    (/ (window-width) dash-width)))
+
 (defun chatgpt--insert-query (query id)
   "Insert QUERY with ID into *ChatGPT*."
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (save-excursion
       (goto-char (point-max))
-      (insert (format "%s%s\n%s\n%s"
+      (insert (format "\n%s\n%s >>> %s\n%s\n%s\n%s"
+                      (make-string (chatgpt-get-buffer-width-by-dash) ?-)
                       (if (= (point-min) (point))
                           ""
                         "\n\n")
                       (propertize query 'face 'bold)
+                      (make-string (chatgpt-get-buffer-width-by-dash) ?-)
                       (propertize
                        (chatgpt--identifier-string id)
                        'invisible t)
