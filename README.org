@@ -7,7 +7,7 @@
 
 ** News
 
-OpenAI is releasing its ChatGPT API soon. Sign up [[https://share.hsforms.com/1u4goaXwDRKC9-x9IvKno0A4sk30][here]]. ChatGPT.el will support the official API once released. Browser-based API will remain supported.
+OpenAI just released its [[https://openai.com/blog/introducing-chatgpt-and-whisper-apis][ChatGPT API]]. ChatGPT.el will incorporate this API soon, stay tuned.
 
 ** Installation
 *** Dependency
