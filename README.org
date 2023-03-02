@@ -12,6 +12,7 @@ OpenAI is releasing its ChatGPT API soon. Sign up [[https://share.hsforms.com/1u
 ** Installation
 *** Dependency
 #+begin_src shell
+pip install sexpdata==0.0.3
 pip install epc
 pip install git+https://github.com/mmabrouk/chatgpt-wrapper
 chatgpt install
