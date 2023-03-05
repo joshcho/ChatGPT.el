@@ -121,4 +121,5 @@ Customize ~chatgpt-query-format-string-map~ for your own types.
 
 ** Misc.
 - Don't use "custom" as a type. It's reserved for custom prepend string through minibuffer.
+- See [[https://github.com/suonlight/ob-chatgpt][ob-chatgpt]] which builds on top of ChatGPT.el.
 - Check out [[https://github.com/semiosis/pen.el][Pen.el]]
