@@ -2,7 +2,7 @@
 
 import pkg_resources
 from epc.server import EPCServer
-# Hedge against breaking changes in chatgpt-wrapper
+# Hedge against breaking changes in chatgpt-wrapper >= 0.5.0
 try:
     from chatgpt_wrapper import ChatGPT
     from chatgpt_wrapper.config import Config
@@ -22,7 +22,7 @@ def query(query):
         bot = ChatGPT(config)
         bot.launch_browser()
 
-    # Hedge against more breaking changes in chatgpt-wrapper
+    # Hedge against more breaking changes in chatgpt-wrapper >= 0.5.0
     response = bot.ask(query)
     try:
         success, response, message = response
