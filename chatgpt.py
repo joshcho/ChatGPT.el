@@ -18,8 +18,7 @@ def query(query):
     global bot
     if bot is None:
         config = Config()
-        config.load_from_file()
-        config.set("browser.debug", False)
+        config.set("backend", "chatgpt-browser")
         bot = ChatGPT(config)
         bot.launch_browser()
 
