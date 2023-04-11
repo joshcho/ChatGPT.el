@@ -1,7 +1,7 @@
 # chatgpt.py
 
 from epc.server import EPCServer
-# Hedge against breaking changes in chatgpt-wrapper
+# Hedge against breaking changes in chatgpt-wrapper >= 0.5.0
 try:
     from chatgpt_wrapper.config import Config
     import chatgpt_wrapper.constants as constants
@@ -51,7 +51,7 @@ def query(query, backend="chatgpt-browser", model="default"):
                f"Options are: 'chatgpt-browser', 'chatgpt-api'.")
 
     response = bot.ask(query)
-    # Hedge against more breaking changes in chatgpt-wrapper
+    # Hedge against more breaking changes in chatgpt-wrapper >= 0.5.0
     try:
         success, response, message = response
     except ValueError:
