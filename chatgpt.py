@@ -2,7 +2,6 @@
 import pkg_resources
 from epc.server import EPCServer
 from lwe import ApiBackend
-from lwe.core.config import Config
 
 server = EPCServer(('localhost', 0))
 bot = None
