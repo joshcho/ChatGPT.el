@@ -23,6 +23,18 @@
   :prefix "chatgpt-"
   :group 'ai)
 
+(defcustom chatgpt-backend "browser"
+  "The backend for ChatGPT.el / chatgpt-wrapper (Options: 'browser',
+'api'. Default: 'browser'."
+  :type 'string
+  :group 'chatgpt)
+
+(defcustom chatgpt-model "default"
+  "The ChatGPT model to use (Options: 'default', 'legacy-paid', 'legacy-free',
+'gpt4'. Default: 'default'."
+  :type 'string
+  :group 'chatgpt)
+
 (defcustom chatgpt-query-format-string-map
   '(("doc" . "Please write the documentation for the following function.\n\n%s")
     ("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
@@ -229,7 +241,7 @@ users."
       (chatgpt-display))
     (deferred:$
      (deferred:$
-      (epc:call-deferred chatgpt-process 'query (list query))
+      (epc:call-deferred chatgpt-process 'query (list query chatgpt-backend chatgpt-model))
       (eval `(deferred:nextc it
                (lambda (response)
                  (chatgpt--stop-wait ,saved-id)
