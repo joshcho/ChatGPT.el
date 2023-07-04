@@ -23,9 +23,9 @@
   :prefix "chatgpt-"
   :group 'ai)
 
-(defcustom chatgpt-backend "chatgpt-browser"
-  "The backend for ChatGPT.el / chatgpt-wrapper (Options: 'chatgpt-browser',
-'chatgpt-api'. Default: 'chatgpt-browser'."
+(defcustom chatgpt-backend "browser"
+  "The backend for ChatGPT.el / chatgpt-wrapper (Options: 'browser',
+'api'. Default: 'browser'."
   :type 'string
   :group 'chatgpt)
 
