@@ -1,26 +1,62 @@
 # chatgpt.py
 
-import pkg_resources
 from epc.server import EPCServer
-from chatgpt_wrapper import ChatGPT
-
-MIN_BREAKCHANGE_VERSION = "0.5.0"
-IS_BREAKING_CHANGE = pkg_resources.get_distribution("ChatGPT").parsed_version \
-                     >= pkg_resources.parse_version(MIN_BREAKCHANGE_VERSION)
+# Hedge against breaking changes in chatgpt-wrapper >= 0.5.0
+try:
+    from chatgpt_wrapper.config import Config
+    import chatgpt_wrapper.constants as constants
+except ImportError:
+    from chatgpt_wrapper.core.config import Config
+    import chatgpt_wrapper.core.constants as constants
 
 server = EPCServer(('localhost', 0))
 bot = None
 
 @server.register_function
-def query(query):
+def query(query, backend="chatgpt-browser", model="default"):
     global bot
     if bot is None:
-        bot = ChatGPT()
+        config = Config()
+        chatgpt_wrapper_browser_models = list(constants.RENDER_MODELS.keys())
+        chatgpt_wrapper_api_models = list(
+            constants.OPENAPI_CHAT_RENDER_MODELS.keys())
+        if backend == "chatgpt-browser":
+            config.set("backend", backend)
+            if model not in chatgpt_wrapper_browser_models:
+                return (f"ChatGPT.el: Unknown chatgpt-wrapper model '{model}' "
+                   f"for '{backend}' backend. "
+                   f"Options are: {chatgpt_wrapper_browser_models}.")
+            config.set("chat.model", model)
+            # Hedge against breaking changes in chatgpt-wrapper >= 0.7.0
+            try:
+                from chatgpt_wrapper import ChatGPT
+            except ImportError:
+                from chatgpt_wrapper.backends.browser.chatgpt import ChatGPT
+            bot = ChatGPT(config)
+            bot.launch_browser()
+        elif backend == "chatgpt-api":
+            config.set("backend", backend)
+            if model not in chatgpt_wrapper_api_models:
+                return (f"ChatGPT.el: Unknown chatgpt-wrapper model '{model}' "
+                   f"for '{backend}' backend. "
+                   f"Options are: {chatgpt_wrapper_api_models}.")
+            config.set("chat.model", model)
+            # NOTE: This will not retain conversation history in its current
+            # form.
+            # See: https://github.com/mmabrouk/chatgpt-wrapper/issues/285
+            from chatgpt_wrapper import OpenAIAPI
+            bot = OpenAIAPI(config)
+        else:
+            return (f"ChatGPT.el: Unknown chatgpt-wrapper backend: '{backend}'. "
+               f"Options are: 'chatgpt-browser', 'chatgpt-api'.")
+
     response = bot.ask(query)
-    if IS_BREAKING_CHANGE:
-        # the return values have changed since 0.5.0
-        # https://github.com/mmabrouk/chatgpt-wrapper/commit/bc13f3dfc838aaa9299a5137723718081acd8eac#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5R21
+    # Hedge against more breaking changes in chatgpt-wrapper >= 0.5.0
+    try:
         success, response, message = response
+    except ValueError:
+        pass
+
     return response
 
 server.print_port()
