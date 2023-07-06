@@ -1,5 +1,6 @@
 # chatgpt.py
-
+import pkg_resources
+from lwe import ApiBackend
 from epc.server import EPCServer
 # Hedge against breaking changes in chatgpt-wrapper >= 0.5.0
 try:
