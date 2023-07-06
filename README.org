@@ -14,7 +14,7 @@ OpenAI just released its [[https://openai.com/blog/introducing-chatgpt-and-whisp
 #+begin_src shell
 pip install sexpdata==0.0.3
 pip install epc
-pip install git+https://github.com/mmabrouk/chatgpt-wrapper
+pip install git+https://github.com/mmabrouk/chatgpt-wrapper@v0.11.7
 chatgpt install
 #+end_src
 
