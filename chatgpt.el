@@ -106,6 +106,8 @@ function."
     (chatgpt-login))
   (when (null chatgpt-repo-path)
     (error "chatgpt-repo-path is nil. Please set chatgpt-repo-path as specified in joshcho/ChatGPT.el"))
+  (unless (getenv "OPENAI_API_KEY")
+    (error "Please set the environment variable \"OPENAI_API_KEY\" to your API key"))
   (setq chatgpt-process (epc:start-epc (if chatgpt-python-interpreter
                                            (expand-file-name chatgpt-python-interpreter)
                                          python-interpreter)

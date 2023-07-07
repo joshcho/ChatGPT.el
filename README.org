@@ -17,8 +17,9 @@ pip install epc
 pip install git+https://github.com/mmabrouk/chatgpt-wrapper
 #+end_src
 
+NOTE: If you encounter any problems with chatgpt-wrapper, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
 
-NOTE: If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
+Set the OPENAI_API_KEY environment variable to [[https://platform.openai.com/account/api-keys][your API key]].
 
 *** [[https://github.com/radian-software/straight.el][Straight]]
 #+begin_src emacs-lisp
