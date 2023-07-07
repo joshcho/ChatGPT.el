@@ -115,6 +115,18 @@ Customize ~chatgpt-query-format-string-map~ for your own types.
                                         ("my-custom-type" . "My custom prompt.\n\n%s")))
 #+end_src
 
+~chatgpt-ensure-pip-install~
+
+Whether to automatically install the python chatgpt-wrapper package using
+pip if not detected in default ~pip list~. You might want to set this to
+~nil~ if you’re providing a custom ~chatgpt-python-interpreter~ (that
+points to a dedicated Python virtualenv for chatgpt-wrapper, for example).
+
+#+begin_src emacs-lisp
+(setq chatgpt-ensure-pip-install nil)
+#+end_src
+
+
 ** Misc.
 - Don't use "custom" as a type. It's reserved for custom prepend string through minibuffer.
 - See [[https://github.com/suonlight/ob-chatgpt][ob-chatgpt]] which builds on top of ChatGPT.el.

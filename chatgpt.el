@@ -65,6 +65,13 @@
   :type 'string
   :group 'chatgpt)
 
+(defcustom chatgpt-ensure-pip-install t
+  "Whether to automatically install the python chatgpt-wrapper
+package using pip if not detected in default `pip list'. You
+might want to set this to `nil' if you're providing a custom
+`chatgpt-python-interpreter' (that points to a dedicated Python
+virtualenv for chatgpt-wrapper, for example).")
+
 (defvar chatgpt-process nil
   "The ChatGPT process.")
 
@@ -86,7 +93,8 @@ successful.
 If ChatGPT server is not initialized, 'chatgpt-query' calls this
 function."
   (interactive)
-  (when (equal (shell-command-to-string "pip list | grep chatGPT") "")
+  (when (and chatgpt-ensure-pip-install
+             (equal (shell-command-to-string "pip list | grep chatGPT") ""))
     (shell-command "pip install git+https://github.com/mmabrouk/chatgpt-wrapper")
     (message "chatgpt-wrapper installed through pip.")
     (chatgpt-login))
