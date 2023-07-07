@@ -7,14 +7,16 @@
 
 ** Installation
 *** Dependency
+
+Install the Python library that our Python helper program needs to be able
+to query ChatGPT:
+
 #+begin_src shell
 pip install sexpdata==0.0.3
 pip install epc
 pip install git+https://github.com/mmabrouk/chatgpt-wrapper
-chatgpt install
 #+end_src
 
-This will prompt you to log in with your browser.
 
 NOTE: If you encounter any problems, please submit an issue or see [[https://github.com/mmabrouk/chatgpt-wrapper][chatgpt-wrapper]].
 

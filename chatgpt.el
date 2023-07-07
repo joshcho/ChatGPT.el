@@ -23,9 +23,11 @@
   :prefix "chatgpt-"
   :group 'ai)
 
-(defcustom chatgpt-backend "browser"
-  "The backend for ChatGPT.el / chatgpt-wrapper (Options: 'browser',
-'api'. Default: 'browser'."
+(defcustom chatgpt-backend "api"
+  "The backend for ChatGPT.el / chatgpt-wrapper (Options:
+'api'. Default: 'api'.) Note that 'browser' was previously a
+valid option for this variable, but has been deprecated. Users
+should move to the 'api' backend."
   :type 'string
   :group 'chatgpt)
 
@@ -246,6 +248,8 @@ response.
 This function is intended to be called internally by the
 `chatgpt-query' function, and should not be called directly by
 users."
+  (when (string= "browser" chatgpt-backend)
+    (error "The 'browser' backend is deprecated. Please set chatgpt-backend to 'api'."))
   (unless chatgpt-process
     (chatgpt-init))
   (let ((saved-id (cl-incf chatgpt-id)))
