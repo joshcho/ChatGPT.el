@@ -1,0 +1,10 @@
+- Test stability, isolate bug
+- Add in-place editing with function calling
+- Update README
+- Add easy editing of configuration file (intercept ~/config edit~)
+- Line by line syntax highlighting
+
+* Later
+- [[https://github.com/nobiot/org-transclusion][Org Transclusion]]?
+- Easy chat selection
+- Forked chatgpt-wrapper for customizable prompts
