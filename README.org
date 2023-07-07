@@ -5,10 +5,6 @@
 - [[https://www.youtube.com/watch?v=4oUrm4CnIjo][Basic Demo]]
 - [[https://www.youtube.com/watch?v=1LMlt5Cv4fY][Queue Demo]]
 
-** News
-
-OpenAI just released its [[https://openai.com/blog/introducing-chatgpt-and-whisper-apis][ChatGPT API]]. ChatGPT.el will incorporate this API soon, stay tuned.
-
 ** Installation
 *** Dependency
 #+begin_src shell
