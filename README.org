@@ -74,8 +74,8 @@ In ~config.el~ ,
 (use-package! chatgpt
   :defer t
   :config
-  (unless (boundp 'python-interpreter)
-    (defvaralias 'python-interpreter 'python-shell-interpreter))
+  (unless (boundp 'chatgpt-python-interpreter)
+    (defvaralias 'chatgpt-python-interpreter 'python-shell-interpreter))
   (setq chatgpt-repo-path (expand-file-name "straight/repos/ChatGPT.el/" doom-local-dir))
   (set-popup-rule! (regexp-quote "*ChatGPT*")
     :side 'bottom :size .5 :ttl nil :quit t :modeline nil)
@@ -98,7 +98,7 @@ in the shell.
 - For most scenarios, the reliable method is ~pkill ms-playwright/firefox && chatgpt install~ to reauthenticate yourself.
 - Also try M-x chatgpt-reset.
 - If for some reason the ellipses keep blinking, try M-x chatgpt-stop.
-- Make sure you have python installed, and ~python-interpreter~ is set (most likely set it to "python" or "python3").
+- Make sure you have python installed, and ~chatgpt-python-interpreter~ is set (most likely set it to "python" or "python3").
 - If none of these methods work, please submit an [[https://github.com/joshcho/ChatGPT.el/issues/new][issue]].
 
 ** Customization

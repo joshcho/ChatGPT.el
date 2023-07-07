@@ -72,6 +72,10 @@ might want to set this to `nil' if you're providing a custom
 `chatgpt-python-interpreter' (that points to a dedicated Python
 virtualenv for chatgpt-wrapper, for example).")
 
+(defcustom chatgpt-python-interpreter nil
+  "Path to Python interpreter that has a working chatgpt-wrapper
+package installed.")
+
 (defvar chatgpt-process nil
   "The ChatGPT process.")
 
@@ -100,9 +104,12 @@ function."
     (chatgpt-login))
   (when (null chatgpt-repo-path)
     (error "chatgpt-repo-path is nil. Please set chatgpt-repo-path as specified in joshcho/ChatGPT.el"))
-  (setq chatgpt-process (epc:start-epc python-interpreter (list (expand-file-name
-                                                                 (format "%schatgpt.py"
-                                                                         chatgpt-repo-path)))))
+  (setq chatgpt-process (epc:start-epc (if chatgpt-python-interpreter
+                                           (expand-file-name chatgpt-python-interpreter)
+                                         python-interpreter)
+                                       (list (expand-file-name
+                                              (format "%schatgpt.py"
+                                                      chatgpt-repo-path)))))
   (with-current-buffer (get-buffer-create "*ChatGPT*")
     (visual-line-mode 1))
   (message "ChatGPT initialized."))
