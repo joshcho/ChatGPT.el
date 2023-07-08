@@ -7,7 +7,6 @@
 
 ** News
 7/8/2023: Shortcut customization has been reworked. If you previously had customizations, please see [[Customization]] to update. We no longer use format strings, instead we just specify the prompt string.
-
 ** Installation
 *** Dependency
 Set your OpenAI API key. In ~.zshrc/bashrc~,
