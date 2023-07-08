@@ -103,11 +103,12 @@
   "Additional expressions to highlight in `chatgpt-mode'.")
 
 (defcustom chatgpt-query-format-string-map
-  '(("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
-    ("doc" . "Please write the documentation for the following function.\n\n%s")
+  '(("bug" . "There is a bug in the following, please help me fix it.\n\n%s")
+    ("doc" . "Please write the documentation for the following.\n\n%s")
     ("improve" . "Please improve the following.\n\n%s")
     ("understand" . "What is the following?\n\n%s")
-    ("refactor" . "Please refactor the following.\n\n%s"))
+    ("refactor" . "Please refactor the following.\n\n%s")
+    ("suggest" . "Please make suggestions for the following.\n\n%s"))
   "An association list that maps query types to their corresponding format strings."
   :type '(alist :key-type (string :tag "Query Type")
                 :value-type (string :tag "Format String"))
@@ -118,26 +119,7 @@
   :type 'boolean
   :group 'chatgpt)
 
-;; (defcustom chatgpt-repo-path nil
-;;   "The path of ChatGPT.el repository."
-;;   :type 'string
-;;   :group 'chatgpt)
-
-;;;###autoload
-(defun chatgpt-display ()
-  "Displays *ChatGPT*."
-  (interactive)
-  (display-buffer chatgpt-buffer-name)
-  (when-let ((saved-win (get-buffer-window (current-buffer)))
-             (win (get-buffer-window chatgpt-buffer-name)))
-    (unless (equal (current-buffer) (get-buffer chatgpt-buffer-name))
-      (select-window win)
-      (goto-char (point-max))
-      (unless (pos-visible-in-window-p (point-max) win)
-        (goto-char (point-max))
-        (recenter))
-      (select-window saved-win))))
-
+;; (mapc 'cancel-timer timer-list)
 (defun chatgpt--query (query)
   (let ((mode major-mode))
     (with-current-buffer (get-buffer chatgpt-buffer-name)
@@ -146,23 +128,38 @@
           (let ((inhibit-read-only t))
             (insert "/read")
             (call-interactively #'comint-send-input)
-            (let ((saved-point (point)))
-              (insert query)
-              (insert "\n/end")
-              (call-interactively #'comint-send-input)
-              (save-excursion
-                (goto-char saved-point)
-                (remove-list-of-text-properties (point) (+ (point) (length query))
-                                                '(font-lock-face))
-                (chatgpt--insert-syntax-highlight
-                 (buffer-substring saved-point
-                                   (+ saved-point (length query)))
-                 mode)
-                (delete-region (point)
-                               (+ (point) (length query))))))
+            (setq
+             timer
+             (run-with-timer
+              0 0.1
+              (lambda (query mode)
+                (with-current-buffer (get-buffer chatgpt-buffer-name)
+                  (when (string-suffix-p "\n\n" (buffer-string))
+                    ;; output response from /read command received
+                    (let ((inhibit-read-only t))
+                      (cancel-timer timer)
+                      (save-excursion
+                        (insert query)
+                        (insert "\n/end")
+                        (let* ((start (point))
+                               (end (+ start (length query))))
+                          (call-interactively #'comint-send-input)
+                          (remove-list-of-text-properties start end '(font-lock-face))
+                          (insert
+                           (chatgpt--buffer-substring-with-mode start end mode))
+                          (delete-region start end)))))))
+              query mode))
+            (run-with-timer 4 nil (lambda () (cancel-timer timer))))
+        ;; Else, send the query directly
         (comint-simple-send
          (get-buffer-process chatgpt-buffer-name)
-         query)))))
+         query)))
+    ;; Display the chatgpt buffer if necessary
+    (when chatgpt-display-on-query
+      (pop-to-buffer chatgpt-buffer-name)
+      (goto-char (point-max))
+      (unless (pos-visible-in-window-p (point))
+        (recenter)))))
 
 (defun chatgpt--query-by-type (query query-type)
   (if (equal query-type "custom")
@@ -209,7 +206,7 @@
     (chatgpt--query query))
   (chatgpt-display))
 
-(defun chatgpt--insert-syntax-highlight (text mode)
+(defun chatgpt--buffer-substring-with-mode (start end mode)
   (cl-flet ((fontify-using-faces
               (text)
               (let ((pos 0)
@@ -220,13 +217,13 @@
                   (setq pos next))
                 (add-text-properties 0  (length text) '(fontified t) text)
                 text)))
-    (insert
-     (fontify-using-faces
-      (with-temp-buffer
-        (insert text)
-        (funcall mode)
-        (font-lock-ensure)
-        (buffer-string))))))
+    (fontify-using-faces
+     (let ((text (buffer-substring start end)))
+       (with-temp-buffer
+         (insert text)
+         (funcall mode)
+         (font-lock-ensure)
+         (buffer-string))))))
 
 (defun chatgpt--string-match-positions (regexp str)
   "Find positions of all matches of REGEXP in STR."
@@ -272,9 +269,9 @@ PROC is the current process. Syntax highlight code blocks."
                       (save-excursion
                         ;; the order here matters. delete before insert causes issues
                         (goto-char code-begin-pos)
-                        (chatgpt--insert-syntax-highlight
-                         (buffer-substring code-begin-pos code-end-pos)
-                         mode)
+                        (insert
+                         (chatgpt--buffer-substring-with-mode
+                          code-begin-pos code-end-pos mode))
                         (delete-region (point)
                                        (+ (point)
                                           (- code-end-pos code-begin-pos)))))))))))))
