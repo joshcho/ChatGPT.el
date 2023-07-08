@@ -5,6 +5,7 @@
 - Add easy switching between chats
 - Shift enter for multi-line input
 - Non-blocking load
+- Submit to MELPA
 
 * Docs
 - Add something about hooks that might cause errors
