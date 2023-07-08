@@ -100,8 +100,7 @@
               "No response from chatgpt-wrapper after %d seconds"
               chatgpt--load-wait-time-in-secs))))))
     ;; Regardless, provided we have a valid buffer, we pop to it.
-    (when buffer
-      (pop-to-buffer buffer))))
+    (pop-to-buffer buffer)))
 
 (defun chatgpt--initialize ()
   "Helper function to initialize ChatGPT."
@@ -218,7 +217,7 @@
                   (cond ((assoc query-type chatgpt-code-query-map)
                          (cdr (assoc query-type chatgpt-code-query-map)))
                         ((equal query-type "custom")
-                         (format "%s" (read-from-minibuffer "ChatGPT Custom Prompt: ")))
+                         (read-from-minibuffer "ChatGPT Custom Prompt: "))
                         (t query-type)))))
     (chatgpt--query query code)))
 
@@ -283,6 +282,8 @@
 (define-polymode poly-chatgpt-mode
   :hostmode 'poly-chatgpt-hostmode
   :innermodes '(poly-chatgpt-fenced-code-innermode))
+
+(add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
 
 (provide 'chatgpt)
 ;;; chatgpt.el ends here
