@@ -1,15 +1,13 @@
-- Test stability, isolate bug
-  - Sometimes lines get sent one by one
 - Add in-place editing with function calling
 - Update README
 - Add easy editing of configuration file (intercept ~/config edit~)
 - Add easy switching between system messages
   - let user specify the config file location so that we can read personalities (but with reasonable default)
 - Add easy switching between chats
-- Line by line syntax highlighting
+- Shift enter for multi-line input
+- Non-blocking load
 
 * Later
 - [[https://github.com/nobiot/org-transclusion][Org Transclusion]]?
 - Easy chat selection
 - Forked chatgpt-wrapper for customizable prompts
-- polymode?
