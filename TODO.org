@@ -1,0 +1,15 @@
+- Add in-place editing with function calling
+- Add easy editing of configuration file (intercept ~/config edit~)
+- Add easy switching between system messages
+  - let user specify the config file location so that we can read personalities (but with reasonable default)
+- Add easy switching between chats
+- Shift enter for multi-line input
+- Non-blocking load
+
+* Docs
+- Add something about hooks that might cause errors
+
+* Later
+- [[https://github.com/nobiot/org-transclusion][Org Transclusion]]?
+- Easy chat selection
+- Forked chatgpt-wrapper for customizable prompts

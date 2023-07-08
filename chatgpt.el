@@ -3,51 +3,139 @@
 ;; Copyright (C) 2011 Free Software Foundation, Inc.
 
 ;; Author: Jungmin "Josh" Cho <joshchonpc@gmail.com>
-;; Version: 0.1
-;; Package-Requires: ((epc "0.1.1") (deferred "0.5.1"))
-;; Keywords: ai
+;; Version: 0.2
+;; Package-Requires: ((polymode "0.2.2"))
+;; Keywords: ai, openai, chatgpt, assistant
 ;; URL: https://github.com/joshcho/ChatGPT.el
 
 ;;; Commentary:
 
 ;; This package provides an interactive interface with ChatGPT API.
 
-(require 'epc)
-(require 'deferred)
-(require 'python)
-
 ;;; Code:
 
+(require 'cl-lib)
+(require 'comint)
 (defgroup chatgpt nil
   "Configuration for chatgpt."
   :prefix "chatgpt-"
   :group 'ai)
 
-(defcustom chatgpt-backend "chatgpt-browser"
-  "The backend for ChatGPT.el / chatgpt-wrapper (Options: 'chatgpt-browser',
-'chatgpt-api'. Default: 'chatgpt-browser'."
-  :type 'string
-  :group 'chatgpt)
+(defvar chatgpt-cli-file-path (replace-regexp-in-string
+                               "\n$" "" (shell-command-to-string "which chatgpt")))
+(defvar chatgpt-cli-arguments '())
+(defvar chatgpt-prompt-regexp "^[^@]+@[^@]+>"
+  "Prompt for `run-chatgpt'.")
 
-(defcustom chatgpt-model "default"
-  "The ChatGPT model to use (Options: 'default', 'legacy-paid', 'legacy-free',
-'gpt4'. Default: 'default'."
-  :type 'string
-  :group 'chatgpt)
+(defconst chatgpt-cmds '("ask" "chat" "config" "context" "copy" "delete" "echo" "editor" "exit" "file" "functions" "help" "history" "log" "login" "logout" "max-submission-tokens" "model" "nav" "new" "preset-delete" "preset-edit" "preset-load" "preset-save" "preset-show" "presets" "provider" "providers" "quit" "read" "stream" "switch" "system-message" "template" "template-copy" "template-delete" "template-edit" "template-edit-run" "template-prompt-edit-run" "template-prompt-run" "template-run" "templates" "title" "user" "user-delete" "user-edit" "user-login" "user-logout" "user-register" "users" "workflow-delete" "workflow-edit" "workflow-run" "workflow-show" "workflows"))
 
-(defcustom chatgpt-query-format-string-map
-  '(("doc" . "Please write the documentation for the following function.\n\n%s")
-    ("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
-    ("understand" . "What is the following?\n\n%s")
-    ("improve" . "Please improve the following.\n\n%s"))
-  "An association list that maps query types to their corresponding format strings."
+(defun chatgpt-completion-at-point ()
+  "Completes / commands interactively"
+  (interactive)
+  (let ((line
+         (buffer-substring (line-beginning-position) (point))))
+    (if-let (filtered-cmds
+             (when (string-match "\\s-*/\\([^ ]*\\)$" line)
+               (cl-remove-if-not (lambda (str)
+                                   (or
+                                    (string-prefix-p
+                                     (match-string 1 line)
+                                     str)
+                                    (equal str
+                                           (match-string 1 line))))
+                                 chatgpt-cmds)))
+        (insert
+         (substring
+          (if (= (length filtered-cmds) 1)
+              (car filtered-cmds)
+            (completing-read "Select cmd: " filtered-cmds))
+          (length (match-string 1 line))))
+      (call-interactively #'completion-at-point))))
+
+(defvar chatgpt-mode-map
+  (let ((map (nconc (make-sparse-keymap) comint-mode-map)))
+    (define-key map "\t" #'chatgpt-completion-at-point)
+    (define-key map (kbd "RET") #'chatgpt-send-input)
+    map)
+  "Basic mode map for `run-chatgpt'.")
+
+(defun get-chatgpt-buffer ()
+  "Find and return the buffer with name matching '*ChatGPT*[lang]' or '*ChatGPT*'."
+  (let ((buffers (buffer-list)))
+    (while (and buffers
+                (not (string-match "\\*ChatGPT\\*\\(\\[.*\\]\\)?"
+                                   (buffer-name (car buffers)))))
+      (setq buffers (cdr buffers)))
+    (car buffers)))
+
+;;;###autoload
+(defun chatgpt-run ()
+  "Run an inferior instance of `chatgpt-cli' inside Emacs."
+  (interactive)
+  (let* ((buffer
+          (or (get-chatgpt-buffer)
+              (get-buffer-create "*ChatGPT*")))
+         (proc-alive (comint-check-proc buffer)))
+    ;; if process is dead, recreate buffer and reset mode
+    (unless proc-alive
+      (with-current-buffer buffer
+        (apply 'make-comint-in-buffer "ChatGPT" buffer
+               chatgpt-cli-file-path nil chatgpt-cli-arguments)
+        (chatgpt-mode)
+        (let ((continue-loop t)
+              (end-time (+ (float-time (current-time))
+                           chatgpt--load-wait-time-in-secs)))
+          ;; block until ready
+          (while (and continue-loop (< (float-time (current-time)) end-time))
+            (with-current-buffer (get-chatgpt-buffer)
+              (sleep-for 0.1)
+              (when (string-match-p (concat chatgpt-prompt-regexp
+                                            "[[:space:]]*$")
+                                    (buffer-string))
+                ;; output response from /read command received
+                (setq continue-loop nil))))
+          (when continue-loop
+            (message
+             (format
+              "No response from chatgpt-wrapper after %d seconds"
+              chatgpt--load-wait-time-in-secs))))))
+    ;; Regardless, provided we have a valid buffer, we pop to it.
+    (pop-to-buffer buffer)))
+
+(defun chatgpt--initialize ()
+  "Helper function to initialize ChatGPT."
+  (setq comint-process-echoes t)
+  (setq comint-use-prompt-regexp t))
+
+(define-derived-mode chatgpt-mode comint-mode "ChatGPT"
+  "Major mode for `run-chatgpt'.
+
+\\<chatgpt-mode-map>"
+  (setq comint-prompt-regexp chatgpt-prompt-regexp)
+  (setq comint-prompt-read-only t)
+  ;; this makes it so commands like M-{ and M-} work.
+  (set (make-local-variable 'paragraph-separate) "\\'")
+  (set (make-local-variable 'font-lock-defaults) '(chatgpt-font-lock-keywords t))
+  (set (make-local-variable 'paragraph-start) chatgpt-prompt-regexp))
+
+(add-hook 'chatgpt-mode-hook 'chatgpt--initialize)
+
+(defvar chatgpt-font-lock-keywords
+  (list
+   ;; highlight all the reserved commands.
+   `(,(concat "\\_</" (regexp-opt chatgpt-cmds) "\\_>") . font-lock-keyword-face))
+  "Additional expressions to highlight in `chatgpt-mode'.")
+
+(defcustom chatgpt-code-query-map
+  '(("bug" . "There is a bug in the following, please help me fix it.")
+    ("doc" . "Please write the documentation for the following.")
+    ("improve" . "Please improve the following.")
+    ("understand" . "What is the following?")
+    ("refactor" . "Please refactor the following.")
+    ("suggest" . "Please make suggestions for the following."))
+  "An association list that maps query types to their corresponding query."
   :type '(alist :key-type (string :tag "Query Type")
-                :value-type (string :tag "Format String"))
-  :group 'chatgpt)
-
-(defcustom chatgpt-enable-loading-ellipsis t
-  "Whether the ellipsis animation is displayed in *ChatGPT*."
-  :type 'boolean
+                :value-type (string :tag "Query String"))
   :group 'chatgpt)
 
 (defcustom chatgpt-display-on-query t
@@ -55,280 +143,147 @@
   :type 'boolean
   :group 'chatgpt)
 
-(defcustom chatgpt-display-on-response t
-  "Whether *ChatGPT* is displayed when a response is received."
-  :type 'boolean
-  :group 'chatgpt)
+(defvar chatgpt--load-wait-time-in-secs 10)
 
-(defcustom chatgpt-repo-path nil
-  "The path of ChatGPT.el repository."
-  :type 'string
-  :group 'chatgpt)
-
-(defvar chatgpt-process nil
-  "The ChatGPT process.")
-
-;;;###autoload
-(defun chatgpt-login ()
-  "Log in to ChatGPT."
-  (interactive)
-  (shell-command "chatgpt install &"))
-
-;;;###autoload
-(defun chatgpt-init ()
-  "Initialize the ChatGPT server.
-
-This function creates the ChatGPT process and starts it. It also
-initializes the ChatGPT buffer, enabling visual line mode in it. A
-message is displayed to indicate that the initialization was
-successful.
-
-If ChatGPT server is not initialized, 'chatgpt-query' calls this
-function."
-  (interactive)
-  (when (equal (shell-command-to-string "pip list | grep chatGPT") "")
-    (shell-command "pip install git+https://github.com/mmabrouk/chatgpt-wrapper")
-    (message "chatgpt-wrapper installed through pip.")
-    (chatgpt-login))
-  (when (null chatgpt-repo-path)
-    (error "chatgpt-repo-path is nil. Please set chatgpt-repo-path as specified in joshcho/ChatGPT.el"))
-  (setq chatgpt-process (epc:start-epc python-interpreter (list (expand-file-name
-                                                                 (format "%schatgpt.py"
-                                                                         chatgpt-repo-path)))))
-  (with-current-buffer (get-buffer-create "*ChatGPT*")
-    (visual-line-mode 1))
-  (message "ChatGPT initialized."))
-
-(defvar chatgpt-wait-timers (make-hash-table)
-  "Timers to update the waiting message in the ChatGPT buffer.")
-
-;;;###autoload
-(defun chatgpt-stop ()
-  "Stops the ChatGPT server."
-  (interactive)
-  (dolist (id (hash-table-keys chatgpt-wait-timers))
-    (chatgpt--stop-wait id))
-  (epc:stop-epc chatgpt-process)
-  (setq chatgpt-process nil)
-  (message "Stop ChatGPT process."))
-
-;;;###autoload
-(defun chatgpt-reset ()
-  "Reset the ChatGPT server. The same session is maintained."
-  (interactive)
-  (chatgpt-stop)
-  (chatgpt-init))
-
-;;;###autoload
-(defun chatgpt-display ()
-  "Displays *ChatGPT*."
-  (interactive)
-  (display-buffer "*ChatGPT*")
-  (when-let ((saved-win (get-buffer-window (current-buffer)))
-             (win (get-buffer-window "*ChatGPT*")))
-    (unless (equal (current-buffer) (get-buffer "*ChatGPT*"))
-      (select-window win)
-      (goto-char (point-max))
-      (unless (pos-visible-in-window-p (point-max) win)
-        (goto-char (point-max))
-        (recenter))
-      (select-window saved-win))))
-
-(defun chatgpt--clear-line ()
-  "Clear line in *ChatGPT*."
-  (cl-assert (equal (current-buffer) (get-buffer "*ChatGPT*")))
-  (delete-region (save-excursion (beginning-of-line)
-                                 (point))
-                 (save-excursion (end-of-line)
-                                 (point))))
-
-(defun chatgpt--identifier-string (id)
-  "Identifier string corresponding to ID."
-  (format "cg?[%s]" id))
-
-(defun chatgpt--regex-string (id)
-  "Regex corresponding to ID."
-  (format "cg\\?\\[%s\\]" id))
-
-(defun chatgpt--goto-identifier (id)
-  "Go to response of ID."
-  (cl-assert (equal (current-buffer) (get-buffer "*ChatGPT*")))
-  (goto-char (point-min))
-  (re-search-forward (chatgpt--regex-string id))
-  (forward-line))
-
-(defun chatgpt--insert-query (query id)
-  "Insert QUERY with ID into *ChatGPT*."
-  (with-current-buffer (get-buffer-create "*ChatGPT*")
-    (save-excursion
-      (goto-char (point-max))
-      (insert (format "%s%s\n%s\n%s"
-                      (if (= (point-min) (point))
-                          ""
-                        "\n\n")
-                      (propertize query 'face 'bold)
-                      (propertize
-                       (chatgpt--identifier-string id)
-                       'invisible t)
-                      (if chatgpt-enable-loading-ellipsis
-                          ""
-                        (concat "Waiting for ChatGPT...")))))))
-
-(defun chatgpt--insert-response (response id)
-  "Insert RESPONSE into *ChatGPT* for ID."
-  (with-current-buffer (get-buffer-create "*ChatGPT*")
-    (save-excursion
-      (chatgpt--goto-identifier id)
-      (chatgpt--clear-line)
-      (insert response))))
-
-(defun chatgpt--insert-error (error-msg id)
-  "Insert ERROR-MSG into *ChatGPT* for ID."
-  (with-current-buffer (get-buffer-create "*ChatGPT*")
-    (save-excursion
-      (chatgpt--goto-identifier id)
-      (chatgpt--clear-line)
-      (insert (format "ERROR: %s" error-msg)))))
-
-(defun chatgpt--add-timer (id)
-  "Add timer for ID to 'chatgpt-wait-timers'."
-  (cl-assert (null (gethash id chatgpt-wait-timers)))
-  (puthash id
-           (run-with-timer 0.5 0.5
-                           (eval
-                            `(lambda ()
-                               (with-current-buffer (get-buffer-create "*ChatGPT*")
-                                 (save-excursion
-                                   (chatgpt--goto-identifier ,id)
-                                   (let ((line (thing-at-point 'line)))
-                                     (when (>= (+ (length line)
-                                                  (if (eq (substring line -1) "\n")
-                                                      0
-                                                    1))
-                                               4)
-                                       (chatgpt--clear-line))
-                                     (insert ".")))))))
-           chatgpt-wait-timers))
-
-(defun chatgpt--stop-wait (id)
-  "Stop waiting for a response from ID."
-  (when-let (timer (gethash id chatgpt-wait-timers))
-    (cancel-timer timer)
-    (remhash id chatgpt-wait-timers)))
-
-(defvar chatgpt-id 0
-  "Tracks responses in the background.")
-
-(defun chatgpt--query (query)
-  "Send QUERY to the ChatGPT process.
-
-The query is inserted into the *ChatGPT* buffer with bold text,
-and the response from the ChatGPT process is appended to the
-buffer. If `chatgpt-enable-loading-ellipsis' is non-nil, a loading
-ellipsis is displayed in the buffer while waiting for the
-response.
-
-This function is intended to be called internally by the
-`chatgpt-query' function, and should not be called directly by
-users."
-  (unless chatgpt-process
-    (chatgpt-init))
-  (let ((saved-id (cl-incf chatgpt-id)))
-    (chatgpt--insert-query query saved-id)
-    (when chatgpt-enable-loading-ellipsis
-      (chatgpt--add-timer saved-id))
+;; (mapc 'cancel-timer timer-list)
+(defun chatgpt--query (query &optional code)
+  (let ((mode major-mode))
+    (with-current-buffer (get-chatgpt-buffer)
+      (comint-kill-input)
+      (if (or code (string-match "\n" query))
+          (let ((inhibit-read-only t))
+            (goto-char (point-max))
+            (insert "/read")
+            (call-interactively #'comint-send-input)
+            (let ((continue-loop t)
+                  (end-time (+ (float-time (current-time))
+                               chatgpt--load-wait-time-in-secs)))
+              (while (and continue-loop (< (float-time (current-time)) end-time))
+                (with-current-buffer (get-chatgpt-buffer)
+                  (sleep-for 0.1)
+                  (when (string-match-p "/end. *\n\n$" (buffer-string))
+                    ;; output response from /read command received
+                    (setq continue-loop nil)
+                    (let ((inhibit-read-only t))
+                      (insert query)
+                      (if (not code)
+                          (progn
+                            (insert "\n/end")
+                            (call-interactively #'comint-send-input))
+                        (let ((saved-point (point)))
+                          ;; if possible, don't refactor this. very fragile,
+                          ;; and probably won't change in the way that you expect
+                          (insert code)
+                          (insert "\n/end")
+                          (call-interactively #'comint-send-input)
+                          (save-excursion
+                            (goto-char saved-point)
+                            (remove-list-of-text-properties (point) (+ (point)
+                                                                       (length code))
+                                                            '(font-lock-face))
+                            (chatgpt--insert-syntax-highlight
+                             (buffer-substring saved-point(+ saved-point (length code)))
+                             mode)
+                            (delete-region (point)
+                                           (+ (point) (length code))))))))))
+              (when continue-loop
+                (message
+                 (format
+                  "No response from chatgpt-wrapper after %d seconds"
+                  chatgpt--load-wait-time-in-secs)))))
+        ;; Else, send the query directly
+        (comint-simple-send
+         (get-buffer-process (get-chatgpt-buffer))
+         query)))
+    ;; Display the chatgpt buffer if necessary
     (when chatgpt-display-on-query
-      (chatgpt-display))
-    (deferred:$
-     (deferred:$
-      (epc:call-deferred chatgpt-process 'query (list query chatgpt-backend chatgpt-model))
-      (eval `(deferred:nextc it
-               (lambda (response)
-                 (chatgpt--stop-wait ,saved-id)
-                 (chatgpt--insert-response response ,saved-id)
-                 (when chatgpt-display-on-response
-                   (chatgpt-display))))))
-     (eval
-      `(deferred:error it
-                       (lambda (err)
-                         (chatgpt--stop-wait ,saved-id)
-                         (string-match "\"Error('\\(.*\\)')\"" (error-message-string err))
-                         (let ((error-str (match-string 1 (error-message-string err))))
-                           (chatgpt--insert-error error-str
-                                                  ,saved-id)
-                           (when (yes-or-no-p (format "Error encountered. Reset chatgpt (If reset doesn't work, try \"\"pkill ms-playwright/firefox\"\" in the shell then reset)?" error-str))
-                             (chatgpt-reset)))))))))
-
-(defun chatgpt--query-by-type (query query-type)
-  "Query ChatGPT with a given QUERY and QUERY-TYPE.
-
-QUERY is the text to be passed to ChatGPT.
-
-QUERY-TYPE is the type of query, which determines the format string
-used to generate the final query sent to ChatGPT. The format string
-is looked up in 'chatgpt-query-format-string-map', which is an
-alist of QUERY-TYPE and format string pairs. If no matching
-format string is found, an error is raised.
-
-The format string is expected to contain a %s placeholder, which
-will be replaced with QUERY. The resulting string is then passed
-to ChatGPT.
-
-For example, if QUERY is \"(defun square (x) (* x x))\" and
-QUERY-TYPE is \"doc\", the final query sent to ChatGPT would be
-\"Please write the documentation for the following function.
-\(defun square (x) (* x x))\""
-  (if (equal query-type "custom")
-      (chatgpt--query
-       (format "%s\n\n%s" (read-from-minibuffer "ChatGPT Custom Prompt: ") query))
-    (if-let (format-string (cdr (assoc query-type chatgpt-query-format-string-map)))
-        (chatgpt--query
-         (format format-string query))
-      (error "No format string associated with 'query-type' %s. Please customize 'chatgpt-query-format-string-map'" query-type))))
+      (pop-to-buffer (get-chatgpt-buffer))
+      ;; (goto-char (point-max))
+      ;; (unless (pos-visible-in-window-p (point))
+      ;;   (recenter))
+      )))
 
 ;;;###autoload
-(defun chatgpt-query-by-type (query)
-  "Query ChatGPT with from QUERY and interactively chosen 'query-type'.
-
-The function uses the 'completing-read' function to prompt the
-user to select the type of query to use. The selected query type
-is passed to the 'chatgpt--query-by-type' function along with the
-'query' argument, which sends the query to the ChatGPT model and
-returns the response."
+(defun chatgpt--code-query (code)
+  ;; assumes *ChatGPT* is alive
   (interactive (list (if (region-active-p)
                          (buffer-substring-no-properties (region-beginning) (region-end))
                        (read-from-minibuffer "ChatGPT Query: "))))
-  (let* ((query-type (completing-read "Type of Query: " (cons "custom" (mapcar #'car chatgpt-query-format-string-map)))))
-    (if (or (assoc query-type chatgpt-query-format-string-map)
-            (equal query-type "custom"))
-        (chatgpt--query-by-type query query-type)
-      (chatgpt--query (format "%s\n\n%s" query-type query)))))
+  (let* ((query-type (completing-read "Type of Query: "
+                                      (cons "custom"
+                                            (mapcar #'car chatgpt-code-query-map))))
+         (query
+          (format "%s\n\n"
+                  (cond ((assoc query-type chatgpt-code-query-map)
+                         (cdr (assoc query-type chatgpt-code-query-map)))
+                        ((equal query-type "custom")
+                         (read-from-minibuffer "ChatGPT Custom Prompt: "))
+                        (t query-type)))))
+    (chatgpt--query query code)))
+
+(defvar chatgpt--in-code-block nil)
 
 ;;;###autoload
-(defun chatgpt-query (query)
-  "Query ChatGPT with QUERY.
+(defun chatgpt-send-input ()
+  (interactive)
+  (call-interactively #'comint-send-input))
 
-The user will be prompted to enter a query if none is provided. If
-there is an active region, the user will be prompted to select the
-type of query to perform.
-
-Supported query types are:
-
-* doc: Ask for documentation in query
-* bug: Find bug in query
-* improve: Suggestions for improving code
-* understand: Query for understanding code or behavior"
-  (interactive (list (if (region-active-p)
-                         (buffer-substring-no-properties (region-beginning) (region-end))
-                       (read-from-minibuffer "ChatGPT Query: "))))
-  ;; (if chatgpt-waiting-dot-timer
-  ;;     (message "Already waiting on a ChatGPT query. If there was an error with your previous query, try M-x chatgpt-reset")
-  ;;   (if (region-active-p)
-  ;;       (chatgpt-query-by-type query)
-  ;;     (chatgpt--query query)))
+;;;###autoload
+(defun chatgpt-query ()
+  (interactive)
+  (save-window-excursion
+    (chatgpt-run))
   (if (region-active-p)
-      (chatgpt-query-by-type query)
-    (chatgpt--query query)))
+      (chatgpt--code-query
+       (buffer-substring-no-properties (region-beginning) (region-end)))
+    (chatgpt--query (read-from-minibuffer "ChatGPT Query: ")))
+  (when chatgpt-display-on-query
+    (pop-to-buffer (get-chatgpt-buffer))))
+
+(defun chatgpt--insert-syntax-highlight (text mode)
+  (cl-flet ((fontify-using-faces
+              (text)
+              (let ((pos 0)
+                    next)
+                (while (setq next (next-single-property-change pos 'face text))
+                  (put-text-property pos next 'font-lock-face
+                                     (get-text-property pos 'face text) text)
+                  (setq pos next))
+                (add-text-properties 0  (length text) '(fontified t) text)
+                text)))
+    (insert
+     (fontify-using-faces
+      (with-temp-buffer
+        (insert text)
+        (funcall mode)
+        (font-lock-ensure)
+        (buffer-string))))))
+
+(defun chatgpt--string-match-positions (regexp str)
+  "Find positions of all matches of REGEXP in STR."
+  (let ((pos 0)
+        matches)
+    (while (string-match regexp str pos)
+      (setq matches (cons (match-beginning 0) matches))
+      (setq pos (match-end 0)))
+    (nreverse matches)))
+
+(require 'polymode)
+(define-hostmode poly-chatgpt-hostmode
+  :mode 'chatgpt-mode)
+
+(define-auto-innermode poly-chatgpt-fenced-code-innermode
+  :head-matcher (cons "^[ \t]*\\(```{?[[:alpha:]].*\n\\)" 1)
+  :tail-matcher (cons "\\(^[ \t]*\\(```\\)\\|Request to interrupt streaming\\)[ \t]*$" 1)
+  :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1)
+  :head-mode 'host
+  :tail-mode 'host)
+
+(define-polymode poly-chatgpt-mode
+  :hostmode 'poly-chatgpt-hostmode
+  :innermodes '(poly-chatgpt-fenced-code-innermode))
+
+(add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
 
 (provide 'chatgpt)
 ;;; chatgpt.el ends here
