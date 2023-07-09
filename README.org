@@ -6,10 +6,10 @@
 - [[https://www.youtube.com/watch?v=1LMlt5Cv4fY][Queue Demo]]
 
 ** News
-7/8/2023: Shortcut customization has been reworked. If you previously had customizations, please see [[Code Query Shortcuts][here]] to update. We no longer use format strings, instead we just specify the prompt string.
+7/8/2023: Shortcut customization has been reworked, see [[Code Query Shortcuts][here]].
 ** Installation
 *** Dependency
-Set your OpenAI API key. In ~.zshrc/bashrc~,
+Set your [[https://platform.openai.com/account/api-keys][OpenAI API key]]. In ~.zshrc/bashrc~,
 #+begin_src shell
 export OPENAI_API_KEY=<API_KEY>
 #+end_src
@@ -96,6 +96,8 @@ Customize ~chatgpt-code-query-map~ for your own prompt shortcuts. Note that "cus
         ;; your shortcut
         ("prompt-name" . "My custom prompt.")))
 #+end_src
+
+If you previously had customizations, note that we use strings now, not format strings.
 
 ** Related Projects
 - [[https://github.com/suonlight/ob-chatgpt][ob-chatgpt]]

@@ -7,6 +7,7 @@
 - Non-blocking load
 - Convert org mode to emacs so that we can have HTML collapsible headers
 - Create new demos
+- Submit to MELPA
 
 * Docs
 - Add something about hooks that might cause errors

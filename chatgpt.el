@@ -74,6 +74,8 @@
 (defun chatgpt-run ()
   "Run an inferior instance of `chatgpt-cli' inside Emacs."
   (interactive)
+  (unless (getenv "OPENAI_API_KEY")
+    (error "Please set the environment variable \"OPENAI_API_KEY\" to your API key"))
   (let* ((buffer
           (or (get-chatgpt-buffer)
               (get-buffer-create "*ChatGPT*")))
