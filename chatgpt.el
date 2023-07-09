@@ -81,20 +81,25 @@
       (setq buffers (cdr buffers)))
     (car buffers)))
 
+(defun cg-get-base-buffer ()
+  (when (cg-get-buffer)
+    (with-current-buffer (cg-get-buffer)
+      (pm-base-buffer))))
+
 ;;;###autoload
 (defun chatgpt-run ()
   "Run an inferior instance of `chatgpt-cli' inside Emacs."
   (interactive)
   (unless (getenv "OPENAI_API_KEY")
     (error "Please set the environment variable \"OPENAI_API_KEY\" to your API key"))
-  (let* ((buffer
-          (or (cg-get-buffer)
+  (let* ((base-buffer
+          (or (cg-get-base-buffer)
               (get-buffer-create "*ChatGPT*")))
-         (proc-alive (comint-check-proc buffer)))
-    ;; if process is dead, recreate buffer and reset mode
+         (proc-alive (comint-check-proc base-buffer)))
+    ;; if process is dead, recreate base-buffer and reset mode
     (unless proc-alive
-      (with-current-buffer buffer
-        (apply 'make-comint-in-buffer "ChatGPT" buffer
+      (with-current-buffer base-buffer
+        (apply 'make-comint-in-buffer "ChatGPT" base-buffer
                chatgpt-cli-file-path nil chatgpt-cli-arguments)
         (chatgpt-mode)
         (let ((continue-loop t)
@@ -102,20 +107,19 @@
                            cg-load-wait-time-in-secs)))
           ;; block until ready
           (while (and continue-loop (< (float-time (current-time)) end-time))
-            (with-current-buffer (cg-get-buffer)
-              (sleep-for 0.1)
-              (when (string-match-p (concat chatgpt-prompt-regexp
-                                            "[[:space:]]*$")
-                                    (buffer-string))
-                ;; output response from /read command received
-                (setq continue-loop nil))))
+            (sleep-for 0.1)
+            (when (string-match-p (concat chatgpt-prompt-regexp
+                                          "[[:space:]]*$")
+                                  (buffer-string))
+              ;; output response from /read command received
+              (setq continue-loop nil)))
           (when continue-loop
             (message
              (format
               "No response from chatgpt-wrapper after %d seconds"
               cg-load-wait-time-in-secs))))))
-    ;; Regardless, provided we have a valid buffer, we pop to it.
-    (pop-to-buffer buffer)))
+    ;; Regardless, provided we have a valid base-buffer, we pop to it.
+    (pop-to-buffer base-buffer)))
 
 (defun cg-initialize ()
   "Helper function to initialize ChatGPT."
@@ -164,18 +168,22 @@
 ;; (mapc 'cancel-timer timer-list)
 (defun cg-query (query &optional code)
   (let ((mode major-mode))
-    (with-current-buffer (cg-get-buffer)
-      (comint-kill-input)
-      (if (or code (string-match "\n" query))
+    (with-current-buffer (cg-get-base-buffer)
+      (comint-kill-input))
+    (if (or code (string-match "\n" query))
+        (with-current-buffer (cg-get-base-buffer)
           (let ((inhibit-read-only t))
             (goto-char (point-max))
             (insert "/read")
-            (call-interactively #'comint-send-input)
+            (comint-send-input)
             (let ((continue-loop t)
                   (end-time (+ (float-time (current-time))
                                cg-load-wait-time-in-secs)))
               (while (and continue-loop (< (float-time (current-time)) end-time))
+                ;; block until /read command finishes
                 (with-current-buffer (cg-get-buffer)
+                                        ; NOT cg-get-base-buffer
+                                        ; we want the cursor to update
                   (sleep-for 0.1)
                   (when (string-match-p "^ • Reading prompt, hit ^d when done, or write line with /end.[[:space:]]*\n\n$" (buffer-string))
                     ;; output response from /read command received
@@ -206,21 +214,17 @@
                 (message
                  (format
                   "No response from chatgpt-wrapper after %d seconds"
-                  cg-load-wait-time-in-secs)))))
-        ;; Else, send the query directly
-        (comint-simple-send
-         (get-buffer-process (cg-get-buffer))
-         query)))
+                  cg-load-wait-time-in-secs))))))
+      ;; Else, send the query directly
+      (comint-simple-send
+       (get-buffer-process (cg-get-base-buffer))
+       query))
     ;; Display the chatgpt buffer if necessary
     (when chatgpt-display-on-query
-      (pop-to-buffer (cg-get-buffer))
-      ;; (goto-char (point-max))
-      ;; (unless (pos-visible-in-window-p (point))
-      ;;   (recenter))
-      )))
+      (pop-to-buffer (cg-get-buffer)))))
 
 ;;;###autoload
-(defun cg-code-query (code)
+(defun chatgpt-code-query (code)
   ;; assumes *ChatGPT* is alive
   (interactive (list (if (region-active-p)
                          (buffer-substring-no-properties (region-beginning) (region-end))
@@ -243,7 +247,7 @@
   (save-window-excursion
     (chatgpt-run))
   (if (region-active-p)
-      (cg-code-query
+      (chatgpt-code-query
        (buffer-substring-no-properties (region-beginning) (region-end)))
     (cg-query (read-from-minibuffer "ChatGPT Query: ")))
   (when chatgpt-display-on-query
@@ -291,11 +295,7 @@
 (define-polymode poly-chatgpt-mode
   :hostmode 'poly-chatgpt-hostmode
   :innermodes '(poly-chatgpt-fenced-code-innermode))
-
-;; disable for now
-;; (add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
-
-
+(add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
 
 (provide 'chatgpt)
 ;;; chatgpt.el ends here
