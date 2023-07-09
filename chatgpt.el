@@ -10,9 +10,11 @@
 
 ;;; Commentary:
 
-;; This package provides an interactive interface with ChatGPT API.
+;; This package provides an interactive interface with ChatGPT API via chatgpt-wrapper.
 
 ;;; Code:
+
+;; user facing functionality prefixed chatgpt-, developer oriented API prefixed cg-
 
 (require 'cl-lib)
 (require 'comint)
@@ -21,17 +23,26 @@
   :prefix "chatgpt-"
   :group 'ai)
 
-(defvar chatgpt-cli-file-path (replace-regexp-in-string
-                               "\n$" "" (shell-command-to-string "which chatgpt")))
-(defvar chatgpt-cli-arguments '())
+(defcustom chatgpt-cli-file-path
+  (replace-regexp-in-string
+   "\n$" "" (shell-command-to-string "which chatgpt"))
+  "Path of chatgpt executable."
+  :type 'string
+  :group 'chatgpt)
+
+(defcustom chatgpt-cli-arguments '()
+  "Arguments for chatgpt executable."
+  :type 'list
+  :group 'chatgpt)
+
 (defcustom chatgpt-prompt-regexp "^[^@]+@[^@]+>"
   "Prompt for `chatgpt-run'. Customize this if you customized chatgpt-wrapper prompt."
   :type 'string
   :group 'chatgpt)
 
-(defconst chatgpt-cmds '("ask" "chat" "config" "context" "copy" "delete" "echo" "editor" "exit" "file" "functions" "help" "history" "log" "login" "logout" "max-submission-tokens" "model" "nav" "new" "preset-delete" "preset-edit" "preset-load" "preset-save" "preset-show" "presets" "provider" "providers" "quit" "read" "stream" "switch" "system-message" "template" "template-copy" "template-delete" "template-edit" "template-edit-run" "template-prompt-edit-run" "template-prompt-run" "template-run" "templates" "title" "user" "user-delete" "user-edit" "user-login" "user-logout" "user-register" "users" "workflow-delete" "workflow-edit" "workflow-run" "workflow-show" "workflows"))
+(defconst cg-cmds '("ask" "chat" "config" "context" "copy" "delete" "echo" "editor" "exit" "file" "functions" "help" "history" "log" "login" "logout" "max-submission-tokens" "model" "nav" "new" "preset-delete" "preset-edit" "preset-load" "preset-save" "preset-show" "presets" "provider" "providers" "quit" "read" "stream" "switch" "system-message" "template" "template-copy" "template-delete" "template-edit" "template-edit-run" "template-prompt-edit-run" "template-prompt-run" "template-run" "templates" "title" "user" "user-delete" "user-edit" "user-login" "user-logout" "user-register" "users" "workflow-delete" "workflow-edit" "workflow-run" "workflow-show" "workflows"))
 
-(defun chatgpt-completion-at-point ()
+(defun cg-completion-at-point ()
   "Completes / commands interactively"
   (interactive)
   (let ((line
@@ -45,7 +56,7 @@
                                      str)
                                     (equal str
                                            (match-string 1 line))))
-                                 chatgpt-cmds)))
+                                 cg-cmds)))
         (insert
          (substring
           (if (= (length filtered-cmds) 1)
@@ -56,12 +67,12 @@
 
 (defvar chatgpt-mode-map
   (let ((map (nconc (make-sparse-keymap) comint-mode-map)))
-    (define-key map "\t" #'chatgpt-completion-at-point)
-    (define-key map (kbd "RET") #'chatgpt-send-input)
+    (define-key map "\t" #'cg-completion-at-point)
+    ;; (define-key map (kbd "RET") #'chatgpt-send-input)
     map)
   "Basic mode map for `run-chatgpt'.")
 
-(defun get-chatgpt-buffer ()
+(defun cg-get-buffer ()
   "Find and return the buffer with name matching '*ChatGPT*[lang]' or '*ChatGPT*'."
   (let ((buffers (buffer-list)))
     (while (and buffers
@@ -70,43 +81,47 @@
       (setq buffers (cdr buffers)))
     (car buffers)))
 
+(defun cg-get-base-buffer ()
+  (when (cg-get-buffer)
+    (with-current-buffer (cg-get-buffer)
+      (pm-base-buffer))))
+
 ;;;###autoload
 (defun chatgpt-run ()
   "Run an inferior instance of `chatgpt-cli' inside Emacs."
   (interactive)
   (unless (getenv "OPENAI_API_KEY")
     (error "Please set the environment variable \"OPENAI_API_KEY\" to your API key"))
-  (let* ((buffer
-          (or (get-chatgpt-buffer)
+  (let* ((base-buffer
+          (or (cg-get-base-buffer)
               (get-buffer-create "*ChatGPT*")))
-         (proc-alive (comint-check-proc buffer)))
-    ;; if process is dead, recreate buffer and reset mode
+         (proc-alive (comint-check-proc base-buffer)))
+    ;; if process is dead, recreate base-buffer and reset mode
     (unless proc-alive
-      (with-current-buffer buffer
-        (apply 'make-comint-in-buffer "ChatGPT" buffer
+      (with-current-buffer base-buffer
+        (apply 'make-comint-in-buffer "ChatGPT" base-buffer
                chatgpt-cli-file-path nil chatgpt-cli-arguments)
         (chatgpt-mode)
         (let ((continue-loop t)
               (end-time (+ (float-time (current-time))
-                           chatgpt--load-wait-time-in-secs)))
+                           cg-load-wait-time-in-secs)))
           ;; block until ready
           (while (and continue-loop (< (float-time (current-time)) end-time))
-            (with-current-buffer (get-chatgpt-buffer)
-              (sleep-for 0.1)
-              (when (string-match-p (concat chatgpt-prompt-regexp
-                                            "[[:space:]]*$")
-                                    (buffer-string))
-                ;; output response from /read command received
-                (setq continue-loop nil))))
+            (sleep-for 0.1)
+            (when (string-match-p (concat chatgpt-prompt-regexp
+                                          "[[:space:]]*$")
+                                  (buffer-string))
+              ;; output response from /read command received
+              (setq continue-loop nil)))
           (when continue-loop
             (message
              (format
               "No response from chatgpt-wrapper after %d seconds"
-              chatgpt--load-wait-time-in-secs))))))
-    ;; Regardless, provided we have a valid buffer, we pop to it.
-    (pop-to-buffer buffer)))
+              cg-load-wait-time-in-secs))))))
+    ;; Regardless, provided we have a valid base-buffer, we pop to it.
+    (pop-to-buffer base-buffer)))
 
-(defun chatgpt--initialize ()
+(defun cg-initialize ()
   "Helper function to initialize ChatGPT."
   (setq comint-process-echoes t)
   (setq comint-use-prompt-regexp t))
@@ -119,16 +134,16 @@
   (setq comint-prompt-read-only t)
   ;; this makes it so commands like M-{ and M-} work.
   (set (make-local-variable 'paragraph-separate) "\\'")
-  (set (make-local-variable 'font-lock-defaults) '(chatgpt-font-lock-keywords t))
+  (set (make-local-variable 'font-lock-defaults) '(cg-font-lock-keywords t))
   (set (make-local-variable 'paragraph-start) chatgpt-prompt-regexp))
 
-(add-hook 'chatgpt-mode-hook 'chatgpt--initialize)
+(add-hook 'chatgpt-mode-hook 'cg-initialize)
 
 ;; currently doesn't work with polymode
-(defvar chatgpt-font-lock-keywords
+(defvar cg-font-lock-keywords
   (list
    ;; highlight all the reserved commands.
-   `(,(concat "\\_</" (regexp-opt chatgpt-cmds) "\\_>") . font-lock-keyword-face))
+   `(,(concat "\\_</" (regexp-opt cg-cmds) "\\_>") . font-lock-keyword-face))
   "Additional expressions to highlight in `chatgpt-mode'.")
 
 (defcustom chatgpt-code-query-map
@@ -148,23 +163,27 @@
   :type 'boolean
   :group 'chatgpt)
 
-(defvar chatgpt--load-wait-time-in-secs 10)
+(defvar cg-load-wait-time-in-secs 10)
 
 ;; (mapc 'cancel-timer timer-list)
-(defun chatgpt--query (query &optional code)
+(defun cg-query (query &optional code)
   (let ((mode major-mode))
-    (with-current-buffer (get-chatgpt-buffer)
-      (comint-kill-input)
-      (if (or code (string-match "\n" query))
+    (with-current-buffer (cg-get-base-buffer)
+      (comint-kill-input))
+    (if (or code (string-match "\n" query))
+        (with-current-buffer (cg-get-base-buffer)
           (let ((inhibit-read-only t))
             (goto-char (point-max))
             (insert "/read")
-            (call-interactively #'comint-send-input)
+            (comint-send-input)
             (let ((continue-loop t)
                   (end-time (+ (float-time (current-time))
-                               chatgpt--load-wait-time-in-secs)))
+                               cg-load-wait-time-in-secs)))
               (while (and continue-loop (< (float-time (current-time)) end-time))
-                (with-current-buffer (get-chatgpt-buffer)
+                ;; block until /read command finishes
+                (with-current-buffer (cg-get-buffer)
+                                        ; NOT cg-get-base-buffer
+                                        ; we want the cursor to update
                   (sleep-for 0.1)
                   (when (string-match-p "^ • Reading prompt, hit ^d when done, or write line with /end.[[:space:]]*\n\n$" (buffer-string))
                     ;; output response from /read command received
@@ -186,7 +205,7 @@
                             (remove-list-of-text-properties (point) (+ (point)
                                                                        (length code))
                                                             '(font-lock-face))
-                            (chatgpt--insert-syntax-highlight
+                            (cg-insert-syntax-highlight
                              (buffer-substring saved-point(+ saved-point (length code)))
                              mode)
                             (delete-region (point)
@@ -195,21 +214,17 @@
                 (message
                  (format
                   "No response from chatgpt-wrapper after %d seconds"
-                  chatgpt--load-wait-time-in-secs)))))
-        ;; Else, send the query directly
-        (comint-simple-send
-         (get-buffer-process (get-chatgpt-buffer))
-         query)))
+                  cg-load-wait-time-in-secs))))))
+      ;; Else, send the query directly
+      (comint-simple-send
+       (get-buffer-process (cg-get-base-buffer))
+       query))
     ;; Display the chatgpt buffer if necessary
     (when chatgpt-display-on-query
-      (pop-to-buffer (get-chatgpt-buffer))
-      ;; (goto-char (point-max))
-      ;; (unless (pos-visible-in-window-p (point))
-      ;;   (recenter))
-      )))
+      (pop-to-buffer (cg-get-buffer)))))
 
 ;;;###autoload
-(defun chatgpt--code-query (code)
+(defun chatgpt-code-query (code)
   ;; assumes *ChatGPT* is alive
   (interactive (list (if (region-active-p)
                          (buffer-substring-no-properties (region-beginning) (region-end))
@@ -224,14 +239,7 @@
                         ((equal query-type "custom")
                          (read-from-minibuffer "ChatGPT Custom Prompt: "))
                         (t query-type)))))
-    (chatgpt--query query code)))
-
-(defvar chatgpt--in-code-block nil)
-
-;;;###autoload
-(defun chatgpt-send-input ()
-  (interactive)
-  (call-interactively #'comint-send-input))
+    (cg-query query code)))
 
 ;;;###autoload
 (defun chatgpt-query ()
@@ -239,13 +247,13 @@
   (save-window-excursion
     (chatgpt-run))
   (if (region-active-p)
-      (chatgpt--code-query
+      (chatgpt-code-query
        (buffer-substring-no-properties (region-beginning) (region-end)))
-    (chatgpt--query (read-from-minibuffer "ChatGPT Query: ")))
+    (cg-query (read-from-minibuffer "ChatGPT Query: ")))
   (when chatgpt-display-on-query
-    (pop-to-buffer (get-chatgpt-buffer))))
+    (pop-to-buffer (cg-get-buffer))))
 
-(defun chatgpt--insert-syntax-highlight (text mode)
+(defun cg-insert-syntax-highlight (text mode)
   (cl-flet ((fontify-using-faces
               (text)
               (let ((pos 0)
@@ -264,7 +272,7 @@
         (font-lock-ensure)
         (buffer-string))))))
 
-(defun chatgpt--string-match-positions (regexp str)
+(defun cg-string-match-positions (regexp str)
   "Find positions of all matches of REGEXP in STR."
   (let ((pos 0)
         matches)
@@ -287,11 +295,7 @@
 (define-polymode poly-chatgpt-mode
   :hostmode 'poly-chatgpt-hostmode
   :innermodes '(poly-chatgpt-fenced-code-innermode))
-
-;; disable for now
-;; (add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
-
-
+(add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
 
 (provide 'chatgpt)
 ;;; chatgpt.el ends here
