@@ -288,7 +288,8 @@
   :hostmode 'poly-chatgpt-hostmode
   :innermodes '(poly-chatgpt-fenced-code-innermode))
 
-(add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
+;; disable for now
+;; (add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
 
 
 
