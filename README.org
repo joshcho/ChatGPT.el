@@ -6,13 +6,14 @@
 - [[https://www.youtube.com/watch?v=1LMlt5Cv4fY][Queue Demo]]
 
 ** News
-7/8/2023: Shortcut customization has been reworked, see [[Customization]].
+7/8/2023: Shortcut customization has been reworked, see [[Code Query Shortcuts][here]].
 ** Installation
 *** Dependency
 Set your [[https://platform.openai.com/account/api-keys][OpenAI API key]]. In ~.zshrc/bashrc~,
 #+begin_src shell
 export OPENAI_API_KEY=<API_KEY>
 #+end_src
+For Windows users, see [[https://www.computerhope.com/issues/ch000549.htm][here]].
 
 Install [[https://github.com/mmabrouk/chatgpt-wrapper#requirements][chatgpt-wrapper]]:
 #+begin_src shell
@@ -73,16 +74,13 @@ In ~config.el~ ,
   :bind ("C-c q" . chatgpt-query))
 #+end_src
 
-** Usage Tips
-- Press ~C-c q~ to query ChatGPT. Select a code block before ~C-c q~ to query the code.
-- I recommend checking out [[https://github.com/mmabrouk/chatgpt-wrapper#configuration][chatgpt-wrapper configuration]]. chatgpt-wrapper is a rich package with many configuration options like:
-  - default model selection
-  - system message
-  - chat sessions
-  - browser backend (for plugins and code interpreter)
-  - langchain integration
+** Usage
+Press ~C-c q~ to query ChatGPT. Select a code block before ~C-c q~ to query the code.
 
 ** Customization
+*** Chat
+Configure default model, system message, browser backend, etc. with [[https://github.com/mmabrouk/chatgpt-wrapper#configuration][chatgpt-wrapper]].
+*** Code Query Shortcuts
 Customize ~chatgpt-code-query-map~ for your own prompt shortcuts. Note that "custom" is a reserved prompt shortcut.
 
 #+begin_src emacs-lisp

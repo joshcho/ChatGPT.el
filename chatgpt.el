@@ -24,8 +24,10 @@
 (defvar chatgpt-cli-file-path (replace-regexp-in-string
                                "\n$" "" (shell-command-to-string "which chatgpt")))
 (defvar chatgpt-cli-arguments '())
-(defvar chatgpt-prompt-regexp "^[^@]+@[^@]+>"
-  "Prompt for `run-chatgpt'.")
+(defcustom chatgpt-prompt-regexp "^[^@]+@[^@]+>"
+  "Prompt for `chatgpt-run'. Customize this if you customized chatgpt-wrapper prompt."
+  :type 'string
+  :group 'chatgpt)
 
 (defconst chatgpt-cmds '("ask" "chat" "config" "context" "copy" "delete" "echo" "editor" "exit" "file" "functions" "help" "history" "log" "login" "logout" "max-submission-tokens" "model" "nav" "new" "preset-delete" "preset-edit" "preset-load" "preset-save" "preset-show" "presets" "provider" "providers" "quit" "read" "stream" "switch" "system-message" "template" "template-copy" "template-delete" "template-edit" "template-edit-run" "template-prompt-edit-run" "template-prompt-run" "template-run" "templates" "title" "user" "user-delete" "user-edit" "user-login" "user-logout" "user-register" "users" "workflow-delete" "workflow-edit" "workflow-run" "workflow-show" "workflows"))
 
@@ -122,6 +124,7 @@
 
 (add-hook 'chatgpt-mode-hook 'chatgpt--initialize)
 
+;; currently doesn't work with polymode
 (defvar chatgpt-font-lock-keywords
   (list
    ;; highlight all the reserved commands.
@@ -163,7 +166,7 @@
               (while (and continue-loop (< (float-time (current-time)) end-time))
                 (with-current-buffer (get-chatgpt-buffer)
                   (sleep-for 0.1)
-                  (when (string-match-p "/end. *\n\n$" (buffer-string))
+                  (when (string-match-p "^ • Reading prompt, hit ^d when done, or write line with /end.[[:space:]]*\n\n$" (buffer-string))
                     ;; output response from /read command received
                     (setq continue-loop nil)
                     (let ((inhibit-read-only t))
@@ -275,7 +278,7 @@
   :mode 'chatgpt-mode)
 
 (define-auto-innermode poly-chatgpt-fenced-code-innermode
-  :head-matcher (cons "^[ \t]*\\(```{?[[:alpha:]].*\n\\)" 1)
+  :head-matcher (cons "^\\(```{?[[:alpha:]][^\n]*\n\\)" 1)
   :tail-matcher (cons "\\(^[ \t]*\\(```\\)\\|Request to interrupt streaming\\)[ \t]*$" 1)
   :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1)
   :head-mode 'host
@@ -285,7 +288,10 @@
   :hostmode 'poly-chatgpt-hostmode
   :innermodes '(poly-chatgpt-fenced-code-innermode))
 
-(add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
+;; disable for now
+;; (add-hook 'chatgpt-mode-hook #'poly-chatgpt-mode)
+
+
 
 (provide 'chatgpt)
 ;;; chatgpt.el ends here
