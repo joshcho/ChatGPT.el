@@ -6,8 +6,8 @@
 - [[https://www.youtube.com/watch?v=1LMlt5Cv4fY][Queue Demo]]
 
 ** Features
-- Send regions of text to ChatGPT
-- Syntax highlighting for returned code
+- Send *regions* of text to ChatGPT
+- *Syntax highlighting* for returned code
 - Uses [[https://github.com/llm-workflow-engine/llm-workflow-engine][llm-workflow-engine]], so can customize as needed
 ** News
 - 9/10/2023: Status - I use this every day and is stable. Please submit an issue if not.
