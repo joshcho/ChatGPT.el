@@ -25,7 +25,7 @@
 
 (defcustom chatgpt-cli-file-path
   (replace-regexp-in-string
-   "\n$" "" (shell-command-to-string "which chatgpt"))
+   "\n$" "" (shell-command-to-string "which lwe"))
   "Path of chatgpt executable."
   :type 'string
   :group 'chatgpt)
