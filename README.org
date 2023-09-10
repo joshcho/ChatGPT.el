@@ -5,7 +5,12 @@
 - [[https://www.youtube.com/watch?v=4oUrm4CnIjo][Basic Demo]]
 - [[https://www.youtube.com/watch?v=1LMlt5Cv4fY][Queue Demo]]
 
+** Features
+- Send regions from a buffer to ChatGPT
+- Syntax highlighting for code
+- Uses [[https://github.com/llm-workflow-engine/llm-workflow-engine][llm-workflow-engine]] under the hood, so deep customization is possible
 ** News
+9/10/2023: Status - I use this every day and is stable. Please submit an issue if not.
 7/8/2023: Shortcut customization has been reworked, see [[Code Query Shortcuts][here]].
 ** Installation
 *** Dependency
@@ -98,6 +103,9 @@ Customize ~chatgpt-code-query-map~ for your own prompt shortcuts. Note that "cus
 #+end_src
 
 If you previously had customizations, note that we use strings now, not format strings.
+
+** Limitations
+- Multiline input is not supported yet
 
 ** Related Projects
 - [[https://github.com/suonlight/ob-chatgpt][ob-chatgpt]]
